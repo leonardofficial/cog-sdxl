@@ -8,14 +8,14 @@ from diffusers.pipelines.stable_diffusion.safety_checker import (
     StableDiffusionSafetyChecker,
 )
 
-# pipe = DiffusionPipeline.from_pretrained(
-#     "stabilityai/stable-diffusion-xl-base-1.0",
-#     torch_dtype=torch.float16,
-#     use_safetensors=True,
-#     variant="fp16",
-# )
+pipe = DiffusionPipeline.from_pretrained(
+    "stabilityai/stable-diffusion-xl-base-1.0",
+    torch_dtype=torch.float16,
+    use_safetensors=True,
+    variant="fp16",
+)
 
-# pipe.save_pretrained("./cache", safe_serialization=True)
+pipe.save_pretrained("./cache", safe_serialization=True)
 
 better_vae = AutoencoderKL.from_pretrained(
     "madebyollin/sdxl-vae-fp16-fix", torch_dtype=torch.float16
