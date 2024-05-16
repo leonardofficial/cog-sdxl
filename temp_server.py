@@ -33,7 +33,9 @@ def generate_image():
     images = []
     with torch.no_grad():
         for _ in range(num_images):
-            image = pipe(prompt, guidance_scale=cfg, height=height, width=width).images[0]
+            generator = torch.manual_seed(42)
+            image = pipe(prompt, guidance_scale=cfg, generator=generator, num_inference_steps=50, height=height,
+                         width=width).images[0]
             img_io = BytesIO()
             image.save(img_io, 'PNG')
             img_io.seek(0)
