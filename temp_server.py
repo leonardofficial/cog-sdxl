@@ -1,7 +1,8 @@
 from flask import Flask, request, jsonify, send_file
 from io import BytesIO
 import torch
-from transformers import StableDiffusionPipeline
+from diffusers import StableDiffusionPipeline
+
 
 app = Flask(__name__)
 
