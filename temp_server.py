@@ -6,7 +6,7 @@ from transformers import StableDiffusionPipeline
 app = Flask(__name__)
 
 # Load the Stable Diffusion model
-model_id = "CompVis/stable-diffusion-v1-4"
+model_id = "SG161222/RealVisXL_V4.0"
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 pipe = StableDiffusionPipeline.from_pretrained(model_id,
