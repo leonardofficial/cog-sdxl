@@ -3,10 +3,9 @@ from io import BytesIO
 import torch
 from diffusers import StableDiffusionPipeline
 
-
 app = Flask(__name__)
 
-# Load the Stable Diffusion model
+# Load the Stable Diffusion XL model
 model_id = "SG161222/RealVisXL_V4.0"
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -34,7 +33,7 @@ def generate_image():
     images = []
     with torch.no_grad():
         for _ in range(num_images):
-            image = pipe(prompt, guidance_scale=cfg, height=height, width=width)["sample"][0]
+            image = pipe(prompt, guidance_scale=cfg, height=height, width=width).images[0]
             img_io = BytesIO()
             image.save(img_io, 'PNG')
             img_io.seek(0)
