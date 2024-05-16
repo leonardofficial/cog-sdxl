@@ -1,9 +1,14 @@
-# Use the official Python image from the Docker Hub
-FROM python:3.9-slim
+# Use the NVIDIA CUDA image as a base
+FROM nvidia/cuda:11.6.2-cudnn8-runtime-ubuntu20.04
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+
+# Install Python and necessary libraries
+RUN apt-get update && apt-get install -y \
+    python3-pip \
+    python3-dev
 
 # Create a directory for the app
 WORKDIR /app
@@ -12,7 +17,7 @@ WORKDIR /app
 COPY requirements.txt .
 
 # Install the dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip3 install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the application code to the working directory
 COPY . .
@@ -21,4 +26,4 @@ COPY . .
 EXPOSE 5000
 
 # Command to run the application
-CMD ["python", "temp_server.py"]
+CMD ["python3", "temp_server.py"]

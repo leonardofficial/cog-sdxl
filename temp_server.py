@@ -5,10 +5,16 @@ from diffusers import DiffusionPipeline
 
 app = Flask(__name__)
 
+# Check if CUDA is available and set device accordingly
+if torch.cuda.is_available():
+    device = "cuda"
+    print("CUDA is available. Using GPU.")
+else:
+    device = "cpu"
+    print("CUDA is not available. Using CPU.")
+
 # Load the Stable Diffusion XL model
 model_id = "SG161222/RealVisXL_V4.0"
-device = "cuda" if torch.cuda.is_available() else "cpu"
-
 pipe = DiffusionPipeline.from_pretrained(model_id, torch_dtype=torch.float16 if device == "cuda" else torch.float32)
 pipe = pipe.to(device)
 
