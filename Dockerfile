@@ -1,5 +1,5 @@
 # Use the NVIDIA CUDA image as a base
-FROM nvidia/cuda:11.6.2-cudnn8-runtime-ubuntu20.04
+FROM nvidia/cuda:11.8.0-base-ubuntu22.04
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
