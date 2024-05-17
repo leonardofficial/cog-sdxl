@@ -19,8 +19,8 @@ model_id = "SG161222/RealVisXL_V4.0"
 pipe = DiffusionPipeline.from_pretrained(model_id, torch_dtype=torch.float16 if device == "cuda" else torch.float32)
 pipe = pipe.to(device)
 
-def custom_progress_callback(step: int, total_steps: int):
-    print(f"Step {step + 1} of {total_steps}")
+def custom_progress_callback(step: int, t: int, latents):
+    print(f"Step {step + 1} of {t}")
 
 def generate_random_seed():
     return random.randint(0, 2**32 - 1)
