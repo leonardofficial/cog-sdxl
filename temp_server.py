@@ -85,7 +85,7 @@ def generate_image():
                     height=height,
                     width=width,
                     num_inference_steps=num_inference_steps,
-                    callback=progress_callback,
+                    callback_on_step_end=progress_callback,
                     callback_steps=1  # Ensure the callback is called at each step
                 ).images[0]
         except Exception as e:
