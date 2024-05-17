@@ -5,12 +5,14 @@ from diffusers import DiffusionPipeline
 import random
 import logging
 import time
+import json
+from tqdm import tqdm
 
 app = Flask(__name__)
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger()
 
 def get_device():
     """
@@ -32,7 +34,9 @@ pipe = DiffusionPipeline.from_pretrained(model_id, torch_dtype=torch.float16 if 
 pipe = pipe.to(device)
 
 def custom_progress_callback(step: int, t: int, latents):
-    logger.info(f"Progress: Step {step + 1} ({(1000 - t)/10}%)")
+    progress = (step + 1) / t * 100
+    progress_bar = f"{progress:.2f}%"
+    tqdm.write(f"{progress_bar} - {time.strftime('%Y-%m-%d %H:%M:%S')} - INFO - Progress: Step {step + 1} ({progress:.2f}%)")
 
 def generate_random_seed():
     return random.randint(0, 2**32 - 1)
@@ -50,7 +54,16 @@ def generate_image():
     num_inference_steps = data.get('num_inference_steps', 50)
     seed = data.get('seed', generate_random_seed())
 
-    logger.info(f"Request with parameters: prompt={prompt}, negative_prompt={negative_prompt}, cfg={cfg}, width={width}, height={height}, num_inference_steps={num_inference_steps}, seed={seed}")
+    request_parameters = {
+        "prompt": prompt,
+        "negative_prompt": negative_prompt,
+        "cfg": cfg,
+        "width": width,
+        "height": height,
+        "num_inference_steps": num_inference_steps,
+        "seed": seed
+    }
+    logger.info(f"Request with parameters: {json.dumps(request_parameters)}")
 
     if not prompt:
         logger.error("Prompt is required")
@@ -59,17 +72,22 @@ def generate_image():
     with torch.no_grad():
         generator = torch.manual_seed(seed)
         try:
-            image = pipe(
-                prompt,
-                negative_prompt=negative_prompt,
-                guidance_scale=cfg,
-                generator=generator,
-                height=height,
-                width=width,
-                num_inference_steps=num_inference_steps,
-                callback=custom_progress_callback,
-                callback_steps=5
-            ).images[0]
+            with tqdm(total=num_inference_steps, desc="Generating", unit="step") as pbar:
+                def progress_callback(step, t, latents):
+                    custom_progress_callback(step, t, latents)
+                    pbar.update(1)
+
+                image = pipe(
+                    prompt,
+                    negative_prompt=negative_prompt,
+                    guidance_scale=cfg,
+                    generator=generator,
+                    height=height,
+                    width=width,
+                    num_inference_steps=num_inference_steps,
+                    callback=progress_callback,
+                    callback_steps=1  # Ensure the callback is called at each step
+                ).images[0]
         except Exception as e:
             logger.exception("Error during image generation")
             return jsonify({"error": str(e)}), 500
