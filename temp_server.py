@@ -3,16 +3,27 @@ from io import BytesIO
 import torch
 from diffusers import DiffusionPipeline
 import random
+import logging
 
 app = Flask(__name__)
 
-# Check if CUDA is available and set device accordingly
-if torch.cuda.is_available():
-    device = "cuda"
-    print("CUDA is available. Using GPU.")
-else:
-    device = "cpu"
-    print("CUDA is not available. Using CPU.")
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+def get_device():
+    """
+    Check if CUDA is available and return the appropriate device.
+    """
+    if torch.cuda.is_available():
+        logger.info("CUDA is available. Using GPU.")
+        return "cuda"
+    else:
+        logger.error("CUDA is not available. Using CPU.")
+        return "cpu"
+
+# Execute the device detection at the beginning
+device = get_device()
 
 # Load the Stable Diffusion XL model
 model_id = "SG161222/RealVisXL_V4.0"
@@ -20,7 +31,7 @@ pipe = DiffusionPipeline.from_pretrained(model_id, torch_dtype=torch.float16 if 
 pipe = pipe.to(device)
 
 def custom_progress_callback(step: int, t: int, latents):
-    print(f"Step {step + 1} of {t}")
+    logger.info(f"Step {step + 1} of {t}")
 
 def generate_random_seed():
     return random.randint(0, 2**32 - 1)
@@ -38,25 +49,32 @@ def generate_image():
     seed = data.get('seed', generate_random_seed())
 
     if not prompt:
+        logger.error("Prompt is required")
         return jsonify({"error": "Prompt is required"}), 400
 
     with torch.no_grad():
         generator = torch.manual_seed(seed)
-        image = pipe(
-            prompt,
-            negative_prompt=negative_prompt,
-            guidance_scale=cfg,
-            generator=generator,
-            height=height,
-            width=width,
-            num_inference_steps=num_inference_steps,
-            callback=custom_progress_callback,
-            callback_steps=1  # Ensure the callback is called at each step
-        ).images[0]
+        try:
+            image = pipe(
+                prompt,
+                negative_prompt=negative_prompt,
+                guidance_scale=cfg,
+                generator=generator,
+                height=height,
+                width=width,
+                num_inference_steps=num_inference_steps,
+                callback=custom_progress_callback,
+                callback_steps=1  # Ensure the callback is called at each step
+            ).images[0]
+        except Exception as e:
+            logger.exception("Error during image generation")
+            return jsonify({"error": str(e)}), 500
+
         img_io = BytesIO()
         image.save(img_io, 'PNG')
         img_io.seek(0)
 
+    logger.info("Image generated successfully")
     return send_file(img_io, mimetype='image/png')
 
 if __name__ == '__main__':
