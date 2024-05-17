@@ -4,6 +4,7 @@ import torch
 from diffusers import DiffusionPipeline
 import random
 import logging
+import time
 
 app = Flask(__name__)
 
@@ -19,7 +20,7 @@ def get_device():
         logger.info("CUDA is available. Using GPU.")
         return "cuda"
     else:
-        logger.error("CUDA is not available. Using CPU.")
+        logger.error("CUDA is not available. Using CPU. This may lead to inefficient performance.")
         return "cpu"
 
 # Execute the device detection at the beginning
@@ -31,13 +32,14 @@ pipe = DiffusionPipeline.from_pretrained(model_id, torch_dtype=torch.float16 if 
 pipe = pipe.to(device)
 
 def custom_progress_callback(step: int, t: int, latents):
-    logger.info(f"Progress: Step {step + 1} of t {t} latents {latents}")
+    logger.info(f"Progress: Step {step + 1} ({(1000 - t)/10}%)")
 
 def generate_random_seed():
     return random.randint(0, 2**32 - 1)
 
 @app.route('/generate', methods=['POST'])
 def generate_image():
+    start_time = time.time()
     data = request.json
 
     prompt = data.get('prompt', None)
@@ -47,6 +49,8 @@ def generate_image():
     height = data.get('height', 1024)
     num_inference_steps = data.get('num_inference_steps', 50)
     seed = data.get('seed', generate_random_seed())
+
+    logger.info(f"Request with parameters: prompt={prompt}, negative_prompt={negative_prompt}, cfg={cfg}, width={width}, height={height}, num_inference_steps={num_inference_steps}, seed={seed}")
 
     if not prompt:
         logger.error("Prompt is required")
@@ -74,7 +78,8 @@ def generate_image():
         image.save(img_io, 'PNG')
         img_io.seek(0)
 
-    logger.info("Image generated successfully")
+    elapsed_time = time.time() - start_time
+    logger.info(f"Image generated successfully in {elapsed_time:.2f} seconds")
     return send_file(img_io, mimetype='image/png')
 
 if __name__ == '__main__':
