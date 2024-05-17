@@ -31,7 +31,7 @@ pipe = DiffusionPipeline.from_pretrained(model_id, torch_dtype=torch.float16 if 
 pipe = pipe.to(device)
 
 def custom_progress_callback(step: int, t: int, latents):
-    logger.info(f"Step {step + 1} of {t}")
+    logger.info(f"Progress: Step {step + 1} of t {t} latents {latents}")
 
 def generate_random_seed():
     return random.randint(0, 2**32 - 1)
@@ -64,7 +64,7 @@ def generate_image():
                 width=width,
                 num_inference_steps=num_inference_steps,
                 callback=custom_progress_callback,
-                callback_steps=1  # Ensure the callback is called at each step
+                callback_steps=5
             ).images[0]
         except Exception as e:
             logger.exception("Error during image generation")
