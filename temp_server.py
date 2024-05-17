@@ -1,12 +1,13 @@
 from flask import Flask, request, send_file, jsonify
 from io import BytesIO
 import torch
-from diffusers import DiffusionPipeline
+from diffusers import DiffusionPipeline, ControlNetModel
 import random
 import logging
 import time
 import json
 from tqdm import tqdm
+from PIL import Image
 
 app = Flask(__name__)
 
@@ -33,6 +34,12 @@ model_id = "SG161222/RealVisXL_V4.0"
 pipe = DiffusionPipeline.from_pretrained(model_id, torch_dtype=torch.float16 if device == "cuda" else torch.float32)
 pipe = pipe.to(device)
 
+# Load the ControlNet model and local image
+controlnet_model_id = "thibaud/controlnet-openpose-sdxl-1.0"
+controlnet = ControlNetModel.from_pretrained(controlnet_model_id, torch_dtype=torch.float16 if device == "cuda" else torch.float32)
+controlnet = controlnet.to(device)
+control_image = Image.open("portrait.png")
+
 def custom_progress_callback(step: int, t: int, latents):
     progress = (step + 1) / t * 100
     progress_bar = f"{progress:.2f}%"
@@ -53,6 +60,7 @@ def generate_image():
     height = data.get('height', 1024)
     num_inference_steps = data.get('num_inference_steps', 50)
     seed = data.get('seed', generate_random_seed())
+    use_controlnet = data.get('use_controlnet', False)
 
     request_parameters = {
         "prompt": prompt,
@@ -61,7 +69,8 @@ def generate_image():
         "width": width,
         "height": height,
         "num_inference_steps": num_inference_steps,
-        "seed": seed
+        "seed": seed,
+        "use_controlnet": use_controlnet
     }
     logger.info(f"Request with parameters: {json.dumps(request_parameters)}")
 
@@ -77,17 +86,34 @@ def generate_image():
                     custom_progress_callback(step, t, latents)
                     pbar.update(1)
 
-                image = pipe(
-                    prompt,
-                    negative_prompt=negative_prompt,
-                    guidance_scale=cfg,
-                    generator=generator,
-                    height=height,
-                    width=width,
-                    num_inference_steps=num_inference_steps,
-                    callback_on_step_end=progress_callback,
-                    callback_steps=1  # Ensure the callback is called at each step
-                ).images[0]
+                if use_controlnet:
+                    logger.info("Using ControlNet for image generation")
+                    image = pipe(
+                        prompt,
+                        negative_prompt=negative_prompt,
+                        guidance_scale=cfg,
+                        generator=generator,
+                        height=height,
+                        width=width,
+                        num_inference_steps=num_inference_steps,
+                        controlnet_image=control_image,
+                        controlnet_model=controlnet,
+                        callback=progress_callback,
+                        callback_steps=1
+                    ).images[0]
+                else:
+                    logger.info("Generating image without ControlNet")
+                    image = pipe(
+                        prompt,
+                        negative_prompt=negative_prompt,
+                        guidance_scale=cfg,
+                        generator=generator,
+                        height=height,
+                        width=width,
+                        num_inference_steps=num_inference_steps,
+                        callback=progress_callback,
+                        callback_steps=5
+                    ).images[0]
         except Exception as e:
             logger.exception("Error during image generation")
             return jsonify({"error": str(e)}), 500

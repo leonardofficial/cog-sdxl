@@ -2,7 +2,6 @@ sdxl-cache/
 refiner-cache/
 safety-cache/
 trained-model/
-*.png
 cache/
 checkpoint/
 training_out/
