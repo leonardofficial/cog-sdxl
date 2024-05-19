@@ -149,6 +149,7 @@ def generate_image(data):
 
         # Upload image to Supabase storage
         storage_response = supabase.storage.from_("models").upload(path=f"{time.time()}.png", file=img_io.read(), file_options={"content-type": "image/png"})
+        logger.info(storage_response)
         storage_id = storage_response.get("Key")
         if not storage_id:
             logger.error("Failed to upload image to Supabase storage")
