@@ -8,12 +8,21 @@ import time
 import json
 from tqdm import tqdm
 from PIL import Image
+from supabase import create_client, Client, SupabaseRealtimeClient
+from realtime.connection import Socket
+import threading
 
 app = Flask(__name__)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger()
+
+# Initialize Supabase client
+SUPABASE_ID = "hccopskgtcodsnjpivvo"
+SUPABASE_URL = "https://hccopskgtcodsnjpivvo.supabase.co"
+SUPABASE_KEY = ""
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 def get_device():
     """
@@ -48,10 +57,25 @@ def custom_progress_callback(step: int, t: int, latents):
 def generate_random_seed():
     return random.randint(0, 2**32 - 1)
 
-@app.route('/generate', methods=['POST'])
-def generate_image():
+def process_task(task):
+    task_id = task['id']
+    task_data = task.get("request", {})
+    logger.info(f"Processing task ID: {task_id} with data: {task_data}")
+
+    try:
+        supabase.from_('job_queue').update({'status': 'running'}).eq('id', task_id).execute()
+        generate_image(task_data)
+        supabase.from_('job_queue').update({'status': 'succeeded'}).eq('id', task_id).execute()
+    except Exception as e:
+        logger.exception(f"Error processing task ID: {task_id}, error: {e}")
+        supabase.from_('job_queue').update({'status': 'failed'}).eq('id', task_id).execute()
+
+def generate_image(data):
+    if not data:
+        logger.error("Data is required")
+        raise ValueError("Data is required")
+
     start_time = time.time()
-    data = request.json
 
     prompt = data.get('prompt', None)
     negative_prompt = data.get('negative_prompt', None)
@@ -76,7 +100,7 @@ def generate_image():
 
     if not prompt:
         logger.error("Prompt is required")
-        return jsonify({"error": "Prompt is required"}), 400
+        raise ValueError("Prompt is required")
 
     with torch.no_grad():
         generator = torch.manual_seed(seed)
@@ -88,6 +112,7 @@ def generate_image():
 
                 if use_controlnet:
                     logger.info("Using ControlNet for image generation")
+                    pipe.controlnet_model = controlnet
                     image = pipe(
                         prompt,
                         negative_prompt=negative_prompt,
@@ -96,13 +121,13 @@ def generate_image():
                         height=height,
                         width=width,
                         num_inference_steps=num_inference_steps,
-                        controlnet_image=control_image,
-                        controlnet_model=controlnet,
+                        control_image=control_image,
                         callback=progress_callback,
                         callback_steps=1
                     ).images[0]
                 else:
                     logger.info("Generating image without ControlNet")
+                    pipe.controlnet_model = None
                     image = pipe(
                         prompt,
                         negative_prompt=negative_prompt,
@@ -112,19 +137,63 @@ def generate_image():
                         width=width,
                         num_inference_steps=num_inference_steps,
                         callback=progress_callback,
-                        callback_steps=5
+                        callback_steps=1
                     ).images[0]
         except Exception as e:
             logger.exception("Error during image generation")
-            return jsonify({"error": str(e)}), 500
+            raise e
 
         img_io = BytesIO()
         image.save(img_io, 'PNG')
         img_io.seek(0)
 
+        # Upload image to Supabase storage
+        storage_response = supabase.storage().from_("models").upload(f"{time.time()}.png", img_io.read())
+        storage_id = storage_response.get("Key")
+        if not storage_id:
+            logger.error("Failed to upload image to Supabase storage")
+            raise ValueError("Failed to upload image to Supabase storage")
+
     elapsed_time = time.time() - start_time
-    logger.info(f"Image generated successfully in {elapsed_time:.2f} seconds")
-    return send_file(img_io, mimetype='image/png')
+    logger.info(f"Image generated and uploaded successfully in {elapsed_time:.2f} seconds, storage ID: {storage_id}")
+    return storage_id
+
+# @app.route('/generate', methods=['POST'])
+# def add_to_queue():
+#     data = request.json
+#
+#     if not data.get('prompt'):
+#         logger.error("Prompt is required")
+#         return jsonify({"error": "Prompt is required"}), 400
+#
+#     task = {
+#         "data": json.dumps(data),
+#         "status": "pending"
+#     }
+#
+#     try:
+#         response = supabase.from_('job_queue').insert(task).execute()
+#         task_id = response.data[0]['id']
+#         logger.info(f"Task added to queue with ID: {task_id}")
+#         return jsonify({"task_id": task_id}), 200
+#     except Exception as e:
+#         logger.exception("Error adding task to queue")
+#         return jsonify({"error": str(e)}), 500
+
+def subscribe_to_queue():
+    def on_insert(payload):
+        new_task = payload["record"]
+        if new_task['status'] == 'queued':
+            process_task(new_task)
+
+    url = f"wss://{SUPABASE_ID}.supabase.co/realtime/v1/websocket?apikey={SUPABASE_KEY}&vsn=1.0.0"
+    s = Socket(url)
+    s.connect()
+
+    channel_1 = s.set_channel("realtime:public:job_queue")
+    channel_1.join().on("INSERT", on_insert)
+    s.listen()
 
 if __name__ == '__main__':
+    subscribe_to_queue()
     app.run(host='0.0.0.0', port=5000)

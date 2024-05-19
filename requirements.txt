@@ -3,3 +3,7 @@ torch
 transformers
 diffusers
 accelerate
+supabase
+tqdm
+pillow
+realtime
