@@ -1,4 +1,4 @@
-from flask import Flask, request, send_file, jsonify
+from flask import Flask
 from io import BytesIO
 import torch
 from diffusers import DiffusionPipeline, ControlNetModel
@@ -8,9 +8,9 @@ import time
 import json
 from tqdm import tqdm
 from PIL import Image
-from supabase import create_client, Client, SupabaseRealtimeClient
+from supabase import create_client, Client
 from realtime.connection import Socket
-import threading
+import uuid
 
 app = Flask(__name__)
 
@@ -64,8 +64,8 @@ def process_task(task):
 
     try:
         supabase.from_('job_queue').update({'status': 'running'}).eq('id', task_id).execute()
-        generate_image(task_data)
-        supabase.from_('job_queue').update({'status': 'succeeded'}).eq('id', task_id).execute()
+        filename = generate_image(task_data)
+        supabase.from_('job_queue').update({'status': 'succeeded', "response": {"image": filename}}).eq('id', task_id).execute()
     except Exception as e:
         logger.exception(f"Error processing task ID: {task_id}, error: {e}")
         supabase.from_('job_queue').update({'status': 'failed'}).eq('id', task_id).execute()
@@ -148,16 +148,20 @@ def generate_image(data):
         img_io.seek(0)
 
         # Upload image to Supabase storage
-        storage_response = supabase.storage.from_("models").upload(path=f"{time.time()}.png", file=img_io.read(), file_options={"content-type": "image/png"})
-        logger.info(storage_response)
-        storage_id = storage_response.get("Key")
-        if not storage_id:
-            logger.error("Failed to upload image to Supabase storage")
+        try:
+            filename = get_filename()
+            supabase.storage.from_("models").upload(path=f"{filename}.png", file=img_io.read(), file_options={"content-type": "image/png"})
+        except Exception as e:
+            logger.error(f"Failed to upload image to Supabase storage with error: {e}")
             raise ValueError("Failed to upload image to Supabase storage")
 
     elapsed_time = time.time() - start_time
-    logger.info(f"Image generated and uploaded successfully in {elapsed_time:.2f} seconds, storage ID: {storage_id}")
-    return storage_id
+    logger.info(f"Image generated and uploaded successfully in {elapsed_time:.2f} seconds, filename: {filename}")
+    return filename
+
+def get_filename():
+    return f"{uuid.uuid4()}"
+
 
 # @app.route('/generate', methods=['POST'])
 # def add_to_queue():
