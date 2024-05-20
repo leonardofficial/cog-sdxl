@@ -12,6 +12,7 @@ from realtime.connection import Socket
 import uuid
 from dotenv import load_dotenv
 import os
+import io
 
 load_dotenv()
 
@@ -19,28 +20,22 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger()
 
-
-class TqdmLoggingHandler(logging.Handler):
-    def __init__(self, level=logging.NOTSET):
-        super().__init__(level)
-        self._tqdm_instance = None
-
-    def set_tqdm_instance(self, tqdm_instance):
-        self._tqdm_instance = tqdm_instance
-
-    def emit(self, record):
-        try:
-            msg = self.format(record)
-            if self._tqdm_instance:
-                self._tqdm_instance.write(msg)
-            else:
-                print(msg)
-        except Exception:
-            self.handleError(record)
-
-# Create an instance of TqdmLoggingHandler and attach it to the logger
-tqdm_handler = TqdmLoggingHandler()
-logger.addHandler(tqdm_handler)
+class TqdmToLogger(io.StringIO):
+    """
+        Output stream for TQDM which will output to logger module instead of
+        the StdOut.
+    """
+    logger = None
+    level = None
+    buf = ''
+    def __init__(self,logger,level=None):
+        super(TqdmToLogger, self).__init__()
+        self.logger = logger
+        self.level = level or logging.INFO
+    def write(self,buf):
+        self.buf = buf.strip('\r\n\t ')
+    def flush(self):
+        self.logger.log(self.level, self.buf)
 
 # Read variables
 SUPABASE_URL = os.getenv('SUPABASE_URL')
@@ -139,8 +134,8 @@ def generate_image(data):
         generator = torch.manual_seed(seed)
         try:
             total_steps = num_inference_steps
-            with tqdm(total=total_steps, desc="Image generation") as pbar:
-                tqdm_handler.set_tqdm_instance(pbar)
+            tqdm_out = TqdmToLogger(logger, level=logging.INFO)
+            with tqdm(total=total_steps, desc="Image generation", file=tqdm_out):
                 if use_controlnet:
                     logger.info("Using ControlNet for image generation")
                     pipe.controlnet_model = controlnet
