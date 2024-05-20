@@ -35,7 +35,7 @@ class TqdmToLogger(io.StringIO):
     def write(self,buf):
         self.buf = buf.strip('\r\n\t ')
     def flush(self):
-        pass
+        self.logger.log(self.level, self.buf)
 
 # Read variables
 SUPABASE_URL = os.getenv('SUPABASE_URL')
