@@ -19,6 +19,29 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger()
 
+
+class TqdmLoggingHandler(logging.Handler):
+    def __init__(self, level=logging.NOTSET):
+        super().__init__(level)
+        self._tqdm_instance = None
+
+    def set_tqdm_instance(self, tqdm_instance):
+        self._tqdm_instance = tqdm_instance
+
+    def emit(self, record):
+        try:
+            msg = self.format(record)
+            if self._tqdm_instance:
+                self._tqdm_instance.write(msg)
+            else:
+                print(msg)
+        except Exception:
+            self.handleError(record)
+
+# Create an instance of TqdmLoggingHandler and attach it to the logger
+tqdm_handler = TqdmLoggingHandler()
+logger.addHandler(tqdm_handler)
+
 # Read variables
 SUPABASE_URL = os.getenv('SUPABASE_URL')
 SUPABASE_KEY = os.getenv('SUPABASE_KEY')
@@ -32,7 +55,7 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 def get_device():
     if torch.cuda.is_available():
         gpu_name = torch.cuda.get_device_name(0)
-        logger.info(f"CUDA is available. Using GPU: {gpu_name}.")
+        logger.info(f"CUDA is available. Using GPU: {gpu_name}")
         return "cuda"
     else:
         logger.error("CUDA is not available. Using CPU. This may lead to inefficient performance.")
@@ -53,17 +76,13 @@ controlnet = ControlNetModel.from_pretrained(controlnet_model_id, torch_dtype=to
 controlnet = controlnet.to(device)
 control_image = Image.open("portrait.png")
 
-def custom_progress_callback(step: int, t: int, latents, total_steps: int):
-    progress = (step + 1) / total_steps * 100
-    logger.info(f"Progress: Step {step + 1}/{total_steps} ({progress:.2f}%)")
-
 # Generate random seeds for stable diffusion
 def generate_random_seed():
     return random.randint(0, 2**32 - 1)
 
 def create_execution_info(start_time: float):
     elapsed_time = time.time() - start_time
-    return {"ms": elapsed_time, "device": DEVICE}
+    return {"ms": elapsed_time * 1000, "device": DEVICE}
 
 # Process task of supabase queue
 def process_task(task):
@@ -78,7 +97,7 @@ def process_task(task):
         generation_response = generate_image(task_data)
         execution_info = create_execution_info(start_time)
         supabase.from_('job_queue').update({'status': 'succeeded', "response": generation_response, "execution_info": execution_info}).eq('id', task_id).execute()
-        logger.info(f"Task {task_id} processed in {execution_info.get('ms'):.2f} seconds, with response: {generation_response}")
+        logger.info(f"Task {task_id} processed in {execution_info.get('ms') / 1000:.2f} seconds, with response: {generation_response}")
     except Exception as e:
         logger.exception(f"Error processing task ID: {task_id}, error: {e}")
         supabase.from_('job_queue').update({'status': 'failed', "execution_info": create_execution_info(start_time)}).eq('id', task_id).execute()
@@ -120,11 +139,8 @@ def generate_image(data):
         generator = torch.manual_seed(seed)
         try:
             total_steps = num_inference_steps
-            with tqdm(total=total_steps, desc="Generating Image") as pbar:
-                # def progress_callback(step, t, latents, pbar, total_steps):
-                #     custom_progress_callback(step, t, latents, total_steps)
-                #     pbar.update(1)
-
+            with tqdm(total=total_steps, desc="Image generation") as pbar:
+                tqdm_handler.set_tqdm_instance(pbar)
                 if use_controlnet:
                     logger.info("Using ControlNet for image generation")
                     pipe.controlnet_model = controlnet
@@ -138,7 +154,6 @@ def generate_image(data):
                         num_inference_steps=num_inference_steps,
                         control_image=control_image,
                         callback_steps=5
-                        #callback=lambda step, t, latents: progress_callback(step, t, latents, pbar, total_steps),
                     ).images[0]
                 else:
                     logger.info("Generating image without ControlNet")
@@ -152,7 +167,6 @@ def generate_image(data):
                         width=width,
                         num_inference_steps=num_inference_steps,
                         callback_steps=5
-                        #callback=lambda step, t, latents: progress_callback(step, t, latents, pbar, total_steps),
                     ).images[0]
         except Exception as e:
             logger.exception("Error during image generation")
