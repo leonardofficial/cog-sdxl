@@ -52,10 +52,9 @@ controlnet = ControlNetModel.from_pretrained(controlnet_model_id, torch_dtype=to
 controlnet = controlnet.to(device)
 control_image = Image.open("portrait.png")
 
-def custom_progress_callback(step: int, t: int, latents):
-    progress = (step + 1) / t * 100
-    progress_bar = f"{progress:.2f}%"
-    tqdm.write(f"{progress_bar} - {time.strftime('%Y-%m-%d %H:%M:%S')} - INFO - Progress: Step {step + 1} ({progress:.2f}%)")
+def custom_progress_callback(step: int, t: int, latents, total_steps: int):
+    progress = (step + 1) / total_steps * 100
+    logger.info(f"Progress: Step {step + 1}/{total_steps} ({progress:.2f}%)")
 
 # Generate random seeds for stable diffusion
 def generate_random_seed():
@@ -119,9 +118,10 @@ def generate_image(data):
     with torch.no_grad():
         generator = torch.manual_seed(seed)
         try:
-            with tqdm(total=num_inference_steps, desc="Generating", unit="step") as pbar:
-                def progress_callback(step, t, latents):
-                    custom_progress_callback(step, t, latents)
+            total_steps = num_inference_steps
+            with tqdm(total=total_steps, desc="Generating Image") as pbar:
+                def progress_callback(step, t, latents, pbar, total_steps):
+                    custom_progress_callback(step, t, latents, total_steps)
                     pbar.update(1)
 
                 if use_controlnet:
@@ -136,8 +136,8 @@ def generate_image(data):
                         width=width,
                         num_inference_steps=num_inference_steps,
                         control_image=control_image,
-                        callback=progress_callback,
-                        callback_steps=1
+                        callback=lambda step, t, latents: progress_callback(step, t, latents, pbar, total_steps),
+                        callback_steps=5
                     ).images[0]
                 else:
                     logger.info("Generating image without ControlNet")
@@ -150,8 +150,8 @@ def generate_image(data):
                         height=height,
                         width=width,
                         num_inference_steps=num_inference_steps,
-                        callback=progress_callback,
-                        callback_steps=1
+                        callback=lambda step, t, latents: progress_callback(step, t, latents, pbar, total_steps),
+                        callback_steps=5
                     ).images[0]
         except Exception as e:
             logger.exception("Error during image generation")
