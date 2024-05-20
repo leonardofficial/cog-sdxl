@@ -21,3 +21,5 @@ checkpoint*
 weights
 __*.zip
 **-cache
+.env.local
+.env.production

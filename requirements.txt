@@ -7,3 +7,4 @@ supabase
 tqdm
 pillow
 realtime
+python-dotenv
