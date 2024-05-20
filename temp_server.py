@@ -50,10 +50,10 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 def get_device():
     if torch.cuda.is_available():
         gpu_name = torch.cuda.get_device_name(0)
-        logger.info(f"CUDA is available. Using GPU: {gpu_name}")
+        logger.info(f"CUDA detected. Using GPU: {gpu_name}")
         return "cuda"
     else:
-        logger.error("CUDA is not available. Using CPU. This may lead to inefficient performance.")
+        logger.error("CUDA not detected. Using CPU instead. This may lead to inefficient performance.")
         return "cpu"
 
 device = get_device()
@@ -135,7 +135,10 @@ def generate_image(data):
         try:
             total_steps = num_inference_steps
             tqdm_out = TqdmToLogger(logger, level=logging.INFO)
-            with tqdm(total=total_steps, desc="Image generation", file=tqdm_out):
+            with tqdm(total=total_steps, desc="Image generation", file=tqdm_out) as pbar:
+                def progress_callback(step, t, latents):
+                    pbar.update(1)
+
                 if use_controlnet:
                     logger.info("Using ControlNet for image generation")
                     pipe.controlnet_model = controlnet
@@ -148,7 +151,8 @@ def generate_image(data):
                         width=width,
                         num_inference_steps=num_inference_steps,
                         control_image=control_image,
-                        callback_steps=5
+                        callback=progress_callback,
+                        callback_steps=1
                     ).images[0]
                 else:
                     logger.info("Generating image without ControlNet")
@@ -161,7 +165,8 @@ def generate_image(data):
                         height=height,
                         width=width,
                         num_inference_steps=num_inference_steps,
-                        callback_steps=5
+                        callback=progress_callback,
+                        callback_steps=1
                     ).images[0]
         except Exception as e:
             logger.exception("Error during image generation")
