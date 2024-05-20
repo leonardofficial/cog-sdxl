@@ -111,80 +111,85 @@ def generate_image(data):
     num_inference_steps = data.get('num_inference_steps', 20)
     seed = data.get('seed', generate_random_seed())
     use_controlnet = data.get('use_controlnet', False)
-
-    request_parameters = {
-        "prompt": prompt,
-        "negative_prompt": negative_prompt,
-        "cfg": cfg,
-        "width": width,
-        "height": height,
-        "num_inference_steps": num_inference_steps,
-        "seed": seed,
-        "use_controlnet": use_controlnet
-    }
-    logger.info(f"Request with parameters: {json.dumps(request_parameters)}")
+    num_options = data.get('num_options', 1)
 
     if not prompt:
         logger.error("Prompt is required")
         raise ValueError("Prompt is required")
 
-    logger.info(f"Using seed: {seed}")
+    images = []
+    for i in range(num_options):
+        current_seed = seed if i == 0 else generate_random_seed()
+        request_parameters = {
+            "prompt": prompt,
+            "negative_prompt": negative_prompt,
+            "cfg": cfg,
+            "width": width,
+            "height": height,
+            "num_inference_steps": num_inference_steps,
+            "seed": current_seed,
+            "use_controlnet": use_controlnet
+        }
+        logger.info(f"Request with parameters: {json.dumps(request_parameters)}")
+        logger.info(f"Using seed: {current_seed}")
 
-    with torch.no_grad():
-        generator = torch.manual_seed(seed)
-        try:
-            total_steps = num_inference_steps
-            tqdm_out = TqdmToLogger(logger, level=logging.INFO)
-            with tqdm(total=total_steps, desc="Image generation", file=tqdm_out) as pbar:
-                def progress_callback(step, t, latents):
-                    pbar.update(1)
+        with torch.no_grad():
+            generator = torch.manual_seed(current_seed)
+            try:
+                total_steps = num_inference_steps
+                tqdm_out = TqdmToLogger(logger, level=logging.INFO)
+                with tqdm(total=total_steps, desc="Image generation", file=tqdm_out) as pbar:
+                    def progress_callback(step, t, latents):
+                        pbar.update(1)
 
-                if use_controlnet:
-                    logger.info("Using ControlNet for image generation")
-                    pipe.controlnet_model = controlnet
-                    image = pipe(
-                        prompt,
-                        negative_prompt=negative_prompt,
-                        guidance_scale=cfg,
-                        generator=generator,
-                        height=height,
-                        width=width,
-                        num_inference_steps=num_inference_steps,
-                        control_image=control_image,
-                        callback=progress_callback,
-                        callback_steps=1
-                    ).images[0]
-                else:
-                    logger.info("Generating image without ControlNet")
-                    pipe.controlnet_model = None
-                    image = pipe(
-                        prompt,
-                        negative_prompt=negative_prompt,
-                        guidance_scale=cfg,
-                        generator=generator,
-                        height=height,
-                        width=width,
-                        num_inference_steps=num_inference_steps,
-                        callback=progress_callback,
-                        callback_steps=1
-                    ).images[0]
-        except Exception as e:
-            logger.exception("Error during image generation")
-            raise e
+                    if use_controlnet:
+                        logger.info("Using ControlNet for image generation")
+                        pipe.controlnet_model = controlnet
+                        image = pipe(
+                            prompt,
+                            negative_prompt=negative_prompt,
+                            guidance_scale=cfg,
+                            generator=generator,
+                            height=height,
+                            width=width,
+                            num_inference_steps=num_inference_steps,
+                            control_image=control_image,
+                            callback=progress_callback,
+                            callback_steps=1
+                        ).images[0]
+                    else:
+                        logger.info("Generating image without ControlNet")
+                        pipe.controlnet_model = None
+                        image = pipe(
+                            prompt,
+                            negative_prompt=negative_prompt,
+                            guidance_scale=cfg,
+                            generator=generator,
+                            height=height,
+                            width=width,
+                            num_inference_steps=num_inference_steps,
+                            callback=progress_callback,
+                            callback_steps=1
+                        ).images[0]
+            except Exception as e:
+                logger.exception("Error during image generation")
+                raise e
 
-        img_io = BytesIO()
-        image.save(img_io, 'PNG')
-        img_io.seek(0)
+            img_io = BytesIO()
+            image.save(img_io, 'PNG')
+            img_io.seek(0)
 
-        # Upload image to Supabase storage
-        try:
-            filename = get_filename()
-            supabase.storage.from_("models").upload(path=f"{filename}.png", file=img_io.read(), file_options={"content-type": "image/png"})
-        except Exception as e:
-            logger.error(f"Failed to upload image to Supabase storage with error: {e}")
-            raise ValueError("Failed to upload image to Supabase storage")
+            # Upload image to Supabase storage
+            try:
+                filename = get_filename()
+                supabase.storage.from_("models").upload(path=f"{filename}.png", file=img_io.read(), file_options={"content-type": "image/png"})
+                images.append({"image": filename, "seed": current_seed})
+            except Exception as e:
+                logger.error(f"Failed to upload image to Supabase storage with error: {e}")
+                raise ValueError("Failed to upload image to Supabase storage")
 
-    return {"assets": [{"image": filename, "seed": seed}]}
+    return {"assets": images}
+
 
 def get_filename():
     return f"{uuid.uuid4()}"
