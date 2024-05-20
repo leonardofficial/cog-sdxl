@@ -31,7 +31,8 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 # Check if CUDA is available and return the appropriate device.
 def get_device():
     if torch.cuda.is_available():
-        logger.info("CUDA is available. Using GPU.")
+        gpu_name = torch.cuda.get_device_name(0)
+        logger.info(f"CUDA is available. Using GPU: {gpu_name}.")
         return "cuda"
     else:
         logger.error("CUDA is not available. Using CPU. This may lead to inefficient performance.")
@@ -77,7 +78,7 @@ def process_task(task):
         generation_response = generate_image(task_data)
         execution_info = create_execution_info(start_time)
         supabase.from_('job_queue').update({'status': 'succeeded', "response": generation_response, "execution_info": execution_info}).eq('id', task_id).execute()
-        logger.info(f"Task {task_id} processed in {execution_info.ms:.2f} seconds, with response: {generation_response}")
+        logger.info(f"Task {task_id} processed in {execution_info.get('ms'):.2f} seconds, with response: {generation_response}")
     except Exception as e:
         logger.exception(f"Error processing task ID: {task_id}, error: {e}")
         supabase.from_('job_queue').update({'status': 'failed', "execution_info": create_execution_info(start_time)}).eq('id', task_id).execute()
@@ -120,9 +121,9 @@ def generate_image(data):
         try:
             total_steps = num_inference_steps
             with tqdm(total=total_steps, desc="Generating Image") as pbar:
-                def progress_callback(step, t, latents, pbar, total_steps):
-                    custom_progress_callback(step, t, latents, total_steps)
-                    pbar.update(1)
+                # def progress_callback(step, t, latents, pbar, total_steps):
+                #     custom_progress_callback(step, t, latents, total_steps)
+                #     pbar.update(1)
 
                 if use_controlnet:
                     logger.info("Using ControlNet for image generation")
@@ -136,8 +137,8 @@ def generate_image(data):
                         width=width,
                         num_inference_steps=num_inference_steps,
                         control_image=control_image,
-                        callback=lambda step, t, latents: progress_callback(step, t, latents, pbar, total_steps),
                         callback_steps=5
+                        #callback=lambda step, t, latents: progress_callback(step, t, latents, pbar, total_steps),
                     ).images[0]
                 else:
                     logger.info("Generating image without ControlNet")
@@ -150,8 +151,8 @@ def generate_image(data):
                         height=height,
                         width=width,
                         num_inference_steps=num_inference_steps,
-                        callback=lambda step, t, latents: progress_callback(step, t, latents, pbar, total_steps),
                         callback_steps=5
+                        #callback=lambda step, t, latents: progress_callback(step, t, latents, pbar, total_steps),
                     ).images[0]
         except Exception as e:
             logger.exception("Error during image generation")
