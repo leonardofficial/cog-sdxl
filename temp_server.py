@@ -195,8 +195,8 @@ def subscribe_to_queue():
         raise ValueError("Error connecting to Supabase")
 
 
-#if __name__ == '__main__':
- #   subscribe_to_queue()
+if __name__ == '__main__':
+    subscribe_to_queue()
   #  app.run(host='0.0.0.0', port=8080)
 
     # @app.route('/generate', methods=['POST'])
