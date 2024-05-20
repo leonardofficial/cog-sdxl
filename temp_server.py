@@ -183,7 +183,7 @@ def generate_image(data):
             try:
                 filename = get_filename()
                 supabase.storage.from_("models").upload(path=f"{filename}.png", file=img_io.read(), file_options={"content-type": "image/png"})
-                images.append({"image": filename, "seed": current_seed})
+                images.append({"image": f"{filename}.png", "seed": current_seed})
             except Exception as e:
                 logger.error(f"Failed to upload image to Supabase storage with error: {e}")
                 raise ValueError("Failed to upload image to Supabase storage")
