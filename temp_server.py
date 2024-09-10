@@ -7,7 +7,7 @@ import time
 import json
 from tqdm import tqdm
 from PIL import Image
-from supabase_helpers import create_client, Client
+from supabase import create_client, Client
 from realtime.connection import Socket
 import uuid
 from dotenv import load_dotenv
