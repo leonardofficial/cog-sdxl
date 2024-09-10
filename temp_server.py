@@ -7,7 +7,7 @@ import time
 import json
 from tqdm import tqdm
 from PIL import Image
-from supabase import create_client, Client
+from supabase_helpers import create_client, Client
 from realtime.connection import Socket
 import uuid
 from dotenv import load_dotenv
@@ -79,7 +79,7 @@ def create_execution_info(start_time: float):
     elapsed_time = time.time() - start_time
     return {"ms": elapsed_time * 1000, "device": DEVICE}
 
-# Process task of supabase queue
+# Process task of supabase_helpers queue
 def process_task(task):
     task_id = task['id']
     task_data = task.get("request", {})
@@ -194,7 +194,7 @@ def generate_image(data):
 def get_filename():
     return f"{uuid.uuid4()}"
 
-# Subscribe to supabase job queue
+# Subscribe to supabase_helpers job queue
 def subscribe_to_queue():
     logger.info(f"Connecting to Supabase with ID {SUPABASE_ID}")
     def on_insert(payload):
@@ -203,7 +203,7 @@ def subscribe_to_queue():
             process_task(new_task)
 
     try:
-        url = f"wss://{SUPABASE_ID}.supabase.co/realtime/v1/websocket?apikey={SUPABASE_KEY}&vsn=1.0.0"
+        url = f"wss://{SUPABASE_ID}.supabase_helpers.co/realtime/v1/websocket?apikey={SUPABASE_KEY}&vsn=1.0.0"
         s = Socket(url)
         s.connect()
 
@@ -215,8 +215,8 @@ def subscribe_to_queue():
         raise ValueError("Error connecting to Supabase")
 
 
-if __name__ == '__main__':
-    subscribe_to_queue()
+# if __name__ == '__main__':
+#     subscribe_to_queue()
   #  app.run(host='0.0.0.0', port=8080)
 
     # @app.route('/generate', methods=['POST'])
@@ -233,7 +233,7 @@ if __name__ == '__main__':
     #     }
     #
     #     try:
-    #         response = supabase.from_('job_queue').insert(task).execute()
+    #         response = supabase_helpers.from_('job_queue').insert(task).execute()
     #         task_id = response.data[0]['id']
     #         logger.info(f"Task added to queue with ID: {task_id}")
     #         return jsonify({"task_id": task_id}), 200
