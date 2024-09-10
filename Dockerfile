@@ -26,4 +26,4 @@ COPY . .
 EXPOSE 5000
 
 # Command to run the application
-CMD ["python3", "temp_server.py"]
+CMD ["python3", "__main__.py"]
