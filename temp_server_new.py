@@ -1,18 +1,20 @@
 import time
-from supabase_helpers.supabase_manager import supabaseClient
+from supabase_helpers.supabase_manager import supabaseClient, DEVICE
 from generate.text_to_image import text_to_image
 from helpers.logger import logger
 from realtime.connection import Socket
 from dotenv import load_dotenv
 import os
 
-from temp_server import create_execution_info
-
 load_dotenv()
 
 SUPABASE_URL = os.getenv('SUPABASE_URL')
 SUPABASE_KEY = os.getenv('SUPABASE_KEY')
 SUPABASE_ID = os.getenv('SUPABASE_ID')
+
+def create_execution_info(start_time: float):
+    elapsed_time = time.time() - start_time
+    return {"ms": elapsed_time * 1000, "device": DEVICE}
 
 # Process task of supabase_helpers queue
 def process_task(task):
