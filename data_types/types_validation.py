@@ -9,8 +9,9 @@ class TextToImageRequestModel(BaseModel):
     width: int = Field(1024, gt=0, description="Width of the generated image")
     seed: Optional[int] = None
 
-    @field_validator('prompt')
-    def validate_prompt(self, value):
+    @field_validator('prompt', mode='before')
+    @classmethod
+    def validate_prompt(cls, value):
         if len(value.strip()) == 0:
             raise ValueError("Prompt cannot be empty")
         return value
@@ -23,7 +24,8 @@ class SupabaseJobQueueType(BaseModel):
     created_at: str = Field(..., description="timestamp when the job was created by user")
 
     @field_validator('request', mode='before')
-    def validate_request(self, value):
+    @classmethod
+    def validate_request(cls, value):
         if not isinstance(value, TextToImageRequestModel):
             raise ValueError("Invalid request data")
         return value
