@@ -115,7 +115,7 @@ def fetch_job_from_supabase(conn):
         cursor.close()
 
 # Update the status of a job in the job_queue table.
-def update_job_status(conn, job_id, status, response_update=None):
+def update_job_status(conn, job_id, status, execution_info_update=None):
     cursor = conn.cursor()
     try:
         sql = """
@@ -124,9 +124,11 @@ def update_job_status(conn, job_id, status, response_update=None):
         """
         params = [status]
 
-        if response_update is not None:
-            sql += ", response = COALESCE(response, '{}'::jsonb) || %s::jsonb"
-            params.append(response_update)
+        if execution_info_update is not None:
+            # Convert execution_info_update to JSON string
+            execution_info_update_json = json.dumps(execution_info_update)
+            sql += ", execution_info = COALESCE(execution_info, '{}'::jsonb) || %s::jsonb"
+            params.append(execution_info_update_json)
 
         sql += " WHERE id = %s;"
         params.append(job_id)
@@ -134,8 +136,8 @@ def update_job_status(conn, job_id, status, response_update=None):
         cursor.execute(sql, tuple(params))
         logger.info(f"Updated job {job_id} status to {status}.")
 
-        if response_update:
-            logger.info(f"Appended response update to job {job_id}: {response_update}")
+        if execution_info_update:
+            logger.info(f"Appended response update to job {job_id}: {execution_info_update}")
     except Exception as e:
         logger.error(f"Failed to update job {job_id} status: {e}")
     finally:
@@ -189,9 +191,6 @@ def add_job_to_rabbitmq(channel, job_data):
 def validate_job(job_data, conn):
     try:
         created_at = job_data.get('created_at')
-        print(datetime.now(timezone.utc) - created_at)
-        print(created_at)
-        print(datetime.now(timezone.utc))
         if created_at and ((datetime.now(timezone.utc) - created_at) > timedelta(minutes=JOB_DISCARD_THRESHOLD)):
             update_job_status(conn, job_data['id'], 'stopped', {"error": "expired (job too long in queue)"})
             logger.info(f"{job_data['id']} - Job is too old, updating database status to 'stopped'.")
