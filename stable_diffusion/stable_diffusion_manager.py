@@ -75,4 +75,5 @@ class StableDiffusionManager:
         self.initialize_pipeline()
 
 
-stableDiffusionManager = StableDiffusionManager(stable_diffusion_model_id)
+#stableDiffusionManager = StableDiffusionManager(stable_diffusion_model_id)
+stableDiffusionManager = None

@@ -10,6 +10,8 @@ load_dotenv()
 MODE = os.getenv('MODE')
 
 if __name__ == "__main__":
+    logger.info("Brand name here...")
+
     if MODE == 'consumer':
         logger.info("Starting in consumer mode")
         subscribe_to_queue_new()
