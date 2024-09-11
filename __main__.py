@@ -10,6 +10,7 @@ MODE = os.getenv('MODE')
 
 if __name__ == "__main__":
     logger.info("Brand name here...")
+    logger.info("Starting up... Specified mode: %s", MODE)
 
     if MODE == 'consumer':
         logger.info("Starting in consumer mode")
@@ -17,4 +18,4 @@ if __name__ == "__main__":
         logger.info("Starting in filler mode")
         supabase_to_rabbitmq()
     else:
-        raise ValueError("Invalid mode")
+        logger.error("Invalid mode. Make sure you have set the MODE environment variable to either 'consumer' or 'filler'... Aborting startup!")
