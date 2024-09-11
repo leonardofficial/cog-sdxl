@@ -31,6 +31,7 @@ NODE_ID = os.getenv('NODE_ID')
 # Initialize and return a PostgreSQL connection with autocommit enabled.
 def init_postgres_connection():
     try:
+        logger.info(f"PostgreSQL config: %s", {"host": SUPABASE_POSTGRES_HOST, "user": SUPABASE_POSTGRES_USER})
         conn = psycopg2.connect(
             user=SUPABASE_POSTGRES_USER,
             password=SUPABASE_POSTGRES_PASSWORD,
@@ -39,7 +40,7 @@ def init_postgres_connection():
             port=SUPABASE_POSTGRES_PORT,
         )
         conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-        logger.info(f"Connected to PostgreSQL {SUPABASE_POSTGRES_HOST} with user {SUPABASE_POSTGRES_USER}")
+        logger.info("PostgreSQL Connection successful")
         return conn
     except Exception as e:
         logger.error(f"Failed to connect to PostgreSQL: {e}")
@@ -61,7 +62,7 @@ def init_rabbitmq_connection():
         ))
         channel = connection.channel()
         channel.queue_declare(queue=RABBITMQ_QUEUE, durable=True)
-        logger.info("Connected to RabbitMQ")
+        logger.info("RabbitMQ connection successful")
         return connection, channel
     except Exception as e:
         logger.error(f"Failed to connect to RabbitMQ: {e}")
