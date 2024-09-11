@@ -17,6 +17,7 @@ class Config(BaseSettings):
     RABBITMQ_QUEUE_SIZE: int = Field(..., alias='RABBITMQ_QUEUE_SIZE')  # Required
     RABBITMQ_DEFAULT_USER: str = Field(..., alias='RABBITMQ_DEFAULT_USER')  # Required
     RABBITMQ_DEFAULT_PASS: str = Field(..., alias='RABBITMQ_DEFAULT_PASS')  # Required
+    RABBITMQ_DEFAULT_VHOST: str = Field(..., alias='RABBITMQ_DEFAULT_VHOST')
 
     JOB_DISCARD_THRESHOLD: int = Field(1440, alias='JOB_DISCARD_THRESHOLD')  # Required
 
