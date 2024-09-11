@@ -1,5 +1,5 @@
 import time
-from supabase_helpers.supabase_manager import supabaseClient, DEVICE
+from supabase_helpers.supabase_manager import supabaseClient, NODE_GPU
 from generate.text_to_image import text_to_image
 from helpers.logger import logger
 from realtime.connection import Socket
@@ -14,7 +14,7 @@ SUPABASE_ID = os.getenv('SUPABASE_ID')
 
 def create_execution_info(start_time: float):
     elapsed_time = time.time() - start_time
-    return {"ms": elapsed_time * 1000, "device": DEVICE}
+    return {"ms": elapsed_time * 1000, "device": NODE_GPU}
 
 # Process task of supabase_helpers queue
 def process_task(task):

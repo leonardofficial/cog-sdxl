@@ -8,6 +8,6 @@ load_dotenv()
 SUPABASE_URL = os.getenv('SUPABASE_URL')
 SUPABASE_KEY = os.getenv('SUPABASE_KEY')
 SUPABASE_ID = os.getenv('SUPABASE_ID')
-DEVICE = os.getenv('DEVICE')
+NODE_GPU = os.getenv('NODE_GPU')
 
 supabaseClient = create_client(SUPABASE_URL, SUPABASE_KEY)

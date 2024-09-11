@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  moosaic-render-queue-consumer:
+    container_name: moosaic-render-queue-consumer
+    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - MODE="consumer"
+    env_file:
+      - ./.env
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+  moosaic-render-queue-filler:
+    container_name: moosaic-render-queue-filler
+    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - MODE="filler"
+    env_file:
+      - ./.env
+  moosaic-render-queue:
+    image: rabbitmq:3-management
+    container_name: moosaic-render-queue
+    env_file:
+      - ./.env
