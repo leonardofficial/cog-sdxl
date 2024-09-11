@@ -4,42 +4,24 @@ import pika
 import json
 import sys
 import time
-import os
-from dotenv import load_dotenv
 from datetime import datetime, timedelta, timezone
-
+from helpers.load_config import load_config
 from helpers.logger import logger
+from rabbitmq.rabbitmq_helpers import get_queue_length
 
-# Load environment variables
-load_dotenv()
-
-# Environment variables
-RABBITMQ_HOST = os.getenv('RABBITMQ_HOST')
-RABBITMQ_QUEUE = os.getenv('RABBITMQ_QUEUE')
-RABBITMQ_QUEUE_SIZE = int(os.getenv('RABBITMQ_QUEUE_SIZE', '0')) or None
-JOB_DISCARD_THRESHOLD = int(os.getenv('JOB_DISCARD_THRESHOLD', '0')) or None
-RABBITMQ_DEFAULT_USER = os.getenv('RABBITMQ_DEFAULT_USER')
-RABBITMQ_DEFAULT_PASS = os.getenv('RABBITMQ_DEFAULT_PASS')
-
-SUPABASE_POSTGRES_USER = os.getenv('SUPABASE_POSTGRES_USER')
-SUPABASE_POSTGRES_PASSWORD = os.getenv('SUPABASE_POSTGRES_PASSWORD')
-SUPABASE_POSTGRES_DB = os.getenv('SUPABASE_POSTGRES_DB')
-SUPABASE_POSTGRES_HOST = os.getenv('SUPABASE_POSTGRES_HOST')
-SUPABASE_POSTGRES_PORT = os.getenv('SUPABASE_POSTGRES_PORT')
-
-NODE_ID = os.getenv('NODE_ID')
+config = load_config()
 
 # Initialize and return a PostgreSQL connection with autocommit enabled.
 def init_postgres_connection():
     try:
-        logger.info(f"PostgreSQL config: %s", {"host": SUPABASE_POSTGRES_HOST, "user": SUPABASE_POSTGRES_USER})
+        logger.info(f"PostgreSQL config: %s", {"host": config.SUPABASE_POSTGRES_HOST, "user": config.SUPABASE_POSTGRES_USER})
 
         conn = psycopg2.connect(
-            user=SUPABASE_POSTGRES_USER,
-            password=SUPABASE_POSTGRES_PASSWORD,
-            dbname=SUPABASE_POSTGRES_DB,
-            host=SUPABASE_POSTGRES_HOST,
-            port=SUPABASE_POSTGRES_PORT,
+            user=config.SUPABASE_POSTGRES_USER,
+            password=config.SUPABASE_POSTGRES_PASSWORD,
+            dbname=config.SUPABASE_POSTGRES_DB,
+            host=config.SUPABASE_POSTGRES_HOST,
+            port=config.SUPABASE_POSTGRES_PORT,
         )
         conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
 
@@ -53,24 +35,37 @@ def init_postgres_connection():
 def init_rabbitmq_connection():
     try:
         logger.info("RabbitMQ config: %s", {
-                    'host': RABBITMQ_HOST,
-                    'queue': RABBITMQ_QUEUE,
-                    'user': RABBITMQ_DEFAULT_USER
+                    'host': config.RABBITMQ_HOST,
+                    'queue': config.RABBITMQ_QUEUE,
+                    'user': config.RABBITMQ_DEFAULT_USER
                     })
 
-        credentials = pika.PlainCredentials(RABBITMQ_DEFAULT_USER, RABBITMQ_DEFAULT_PASS)
+        credentials = pika.PlainCredentials(config.RABBITMQ_DEFAULT_USER, config.RABBITMQ_DEFAULT_PASS)
         connection = pika.BlockingConnection(pika.ConnectionParameters(
-            host=RABBITMQ_HOST,
+            host=config.RABBITMQ_HOST,
             credentials=credentials
         ))
         channel = connection.channel()
-        channel.queue_declare(queue=RABBITMQ_QUEUE, durable=True)
+        channel.queue_declare(queue=config.RABBITMQ_QUEUE, durable=True)
 
         logger.info("RabbitMQ connection successful")
         return connection, channel
     except Exception as e:
         logger.error(f"RabbitMQ connection failed: {e}")
         sys.exit(1)
+
+# Validate job data before adding it to RabbitMQ
+def validate_supabase_job_data(job_data, conn):
+    try:
+        created_at = job_data.get('created_at')
+        if created_at and ((datetime.now(timezone.utc) - created_at) > timedelta(minutes=config.JOB_DISCARD_THRESHOLD)):
+            update_job_status(conn, job_data['id'], 'stopped', {"error": "expired (job too long in queue)"})
+            logger.info(f"{job_data['id']} - Job is too old, updating database status to 'stopped'.")
+            return False
+        return True
+    except Exception as e:
+        logger.error(f"{job_data['id']} - Job validation raised exception: {e}")
+        return False
 
 # Fetch a job from the job_queue table in PostgreSQL.
 def fetch_job_from_supabase(conn):
@@ -95,7 +90,7 @@ def fetch_job_from_supabase(conn):
             )
             RETURNING id, request, created_at;
             """,
-            (NODE_ID, datetime.now().isoformat())
+            (config.NODE_ID, datetime.now().isoformat())
         )
         job = cursor.fetchone()
         if job:
@@ -105,7 +100,7 @@ def fetch_job_from_supabase(conn):
                 'request': request,
                 'created_at': created_at
             }
-            logger.info(f"Assigned job {job_id} to node {NODE_ID}")
+            logger.info(f"Assigned job {job_id} to node {config.NODE_ID}")
             return job_data
         return None
     except Exception as e:
@@ -150,13 +145,13 @@ def fetch_jobs_if_needed(conn, channel):
         queue_length = get_queue_length(channel)
         logger.info(f"Current RabbitMQ queue length: {queue_length}")
 
-        while queue_length < RABBITMQ_QUEUE_SIZE:
-            logger.info(f"Queue below threshold ({RABBITMQ_QUEUE_SIZE}), fetching more jobs.")
+        while queue_length < config.RABBITMQ_QUEUE_SIZE:
+            logger.info(f"Queue below threshold ({config.RABBITMQ_QUEUE_SIZE}), fetching more jobs.")
             job_data = fetch_job_from_supabase(conn)
             if not job_data:
                 break
 
-            if validate_job(job_data, conn):
+            if validate_supabase_job_data(job_data, conn):
                 add_job_to_rabbitmq(channel, job_data)
 
             queue_length = get_queue_length(channel)
@@ -165,47 +160,25 @@ def fetch_jobs_if_needed(conn, channel):
     except Exception as e:
         logger.error(f"Error fetching jobs: {e}")
 
-# Get the length of the RabbitMQ queue.
-def get_queue_length(channel):
-    try:
-        queue_state = channel.queue_declare(queue=RABBITMQ_QUEUE, passive=True)
-        return queue_state.method.message_count
-    except Exception as e:
-        logger.error(f"Failed to get local RabbitMQ queue length: {e}")
-        return None
-
 # Add a job to the RabbitMQ queue.
 def add_job_to_rabbitmq(channel, job_data):
     try:
         channel.basic_publish(
             exchange='',
-            routing_key=RABBITMQ_QUEUE,
-            body=json.dumps(job_data['request']),
-            properties=pika.BasicProperties(delivery_mode=2),
+            routing_key=config.RABBITMQ_QUEUE,
+            body=json.dumps(job_data),
+            properties=pika.BasicProperties(delivery_mode=2, message_id=job_data['id']),
         )
         logger.info(f"{job_data['id']} - Job added to RabbitMQ Queue: {job_data}")
     except Exception as e:
         logger.error(f"{job_data['id']} - Failed to add job to RabbitMQ: {e}")
-
-# Validate job data before adding it to RabbitMQ
-def validate_job(job_data, conn):
-    try:
-        created_at = job_data.get('created_at')
-        if created_at and ((datetime.now(timezone.utc) - created_at) > timedelta(minutes=JOB_DISCARD_THRESHOLD)):
-            update_job_status(conn, job_data['id'], 'stopped', {"error": "expired (job too long in queue)"})
-            logger.info(f"{job_data['id']} - Job is too old, updating database status to 'stopped'.")
-            return False
-        return True
-    except Exception as e:
-        logger.error(f"{job_data['id']} - Job validation raised exception: {e}")
-        return False
 
 # Main function to subscribe to PostgreSQL notifications and send new rows to RabbitMQ
 def supabase_to_rabbitmq():
     postgres_conn = init_postgres_connection()
     rabbit_conn, rabbit_channel = init_rabbitmq_connection()
 
-    logger.info("Stopping jobs older than %s minutes", JOB_DISCARD_THRESHOLD)
+    logger.info("Stopping jobs older than %s minutes", config.JOB_DISCARD_THRESHOLD)
 
     try:
         while True:
