@@ -189,6 +189,9 @@ def add_job_to_rabbitmq(channel, job_data):
 def validate_job(job_data, conn):
     try:
         created_at = job_data.get('created_at')
+        print(datetime.now(timezone.utc) - created_at)
+        print(created_at)
+        print(datetime.now(timezone.utc))
         if created_at and datetime.now(timezone.utc) - created_at > timedelta(minutes=JOB_DISCARD_THRESHOLD):
             update_job_status(conn, job_data['id'], 'stopped', {"error": "expired (job too long in queue)"})
             logger.info(f"{job_data['id']} - Job is too old, updating database status to 'stopped'.")
