@@ -18,11 +18,12 @@ class TextToImageRequestModel(BaseModel):
 
 class SupabaseJobQueueType(BaseModel):
     id: str = Field(..., description="job id")
-    request: TextToImageRequestModel = Field(..., description="request data (e.g. for generating images)")
+    request: TextToImageRequestModel = Field(..., description="request data (e.g., for generating images)")
     status: str = Field(..., description="current status of the job")
     created_at: str = Field(..., description="timestamp when the job was created by user")
 
-    @field_validator('request')
+    @field_validator('request', mode='before')
     def validate_request(self, value):
-        TextToImageRequestModel(**value)
+        if not isinstance(value, TextToImageRequestModel):
+            raise ValueError("Invalid request data")
         return value
