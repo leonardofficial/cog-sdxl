@@ -16,7 +16,7 @@ load_dotenv()
 # Environment variables
 RABBITMQ_HOST = os.getenv('RABBITMQ_HOST')
 RABBITMQ_QUEUE = os.getenv('RABBITMQ_QUEUE')
-RABBITMQ_QUEUE_SIZE = int(os.getenv('RABBITMQ_QUEUE_SIZE', '0')) or None
+RABBITMQ_QUEUE_SIZE = int(os.getenv('RABBIT MQ_QUEUE_SIZE', '0')) or None
 RABBITMQ_DEFAULT_USER = os.getenv('RABBITMQ_DEFAULT_USER')
 RABBITMQ_DEFAULT_PASS = os.getenv('RABBITMQ_DEFAULT_PASS')
 
@@ -99,8 +99,8 @@ def fetch_job_from_supabase(conn):
         job = cursor.fetchone()
         if job:
             job_id, request, created_at = job
-            logger.info(f"Fetched job {job_id} on node {NODE_ID}")
-            return {'request': request, 'created_at': created_at}
+            logger.info(f"Assigned job {job_id} to node {NODE_ID}")
+            return job
         return None
     except Exception as e:
         logger.error(f"Error fetching job from PostgreSQL: {e}")
@@ -139,8 +139,7 @@ def update_job_status(conn, job_id, status, response_update=None):
 # Fetch jobs if RabbitMQ queue is below the threshold
 def fetch_jobs_if_needed(conn, channel):
     try:
-        queue_state = channel.queue_declare(queue=RABBITMQ_QUEUE, passive=True)
-        queue_length = queue_state.method.message_count
+        queue_length = get_queue_length(channel)
         logger.info(f"Current RabbitMQ queue length: {queue_length}")
 
         while queue_length < RABBITMQ_QUEUE_SIZE:
@@ -150,20 +149,35 @@ def fetch_jobs_if_needed(conn, channel):
                 break
 
             if validate_job(job_data, conn):
-                channel.basic_publish(
-                    exchange='',
-                    routing_key=RABBITMQ_QUEUE,
-                    body=json.dumps(job_data['request']),
-                    properties=pika.BasicProperties(delivery_mode=2),
-                )
-                logger.info(f"{job_data['id']} - Job added to RabbitMQ Queue: {job_data['request']}")
+                add_job_to_rabbitmq(channel, job_data)
 
-            queue_state = channel.queue_declare(queue=RABBITMQ_QUEUE, passive=True)
-            queue_length = queue_state.method.message_count
+            queue_length = get_queue_length(channel)
             time.sleep(2)
 
     except Exception as e:
         logger.error(f"Error fetching jobs: {e}")
+
+# Get the length of the RabbitMQ queue.
+def get_queue_length(channel):
+    try:
+        queue_state = channel.queue_declare(queue=RABBITMQ_QUEUE, passive=True)
+        return queue_state.method.message_count
+    except Exception as e:
+        logger.error(f"Failed to get local RabbitMQ queue length: {e}")
+        return None
+
+# Add a job to the RabbitMQ queue.
+def add_job_to_rabbitmq(channel, job_data):
+    try:
+        channel.basic_publish(
+            exchange='',
+            routing_key=RABBITMQ_QUEUE,
+            body=json.dumps(job_data['request']),
+            properties=pika.BasicProperties(delivery_mode=2),
+        )
+        logger.info(f"{job_data['id']} - Job added to RabbitMQ Queue: {job_data}")
+    except Exception as e:
+        logger.error(f"{job_data['id']} - Failed to add job to RabbitMQ: {e}")
 
 # Validate job data before adding it to RabbitMQ
 def validate_job(job_data, conn):
