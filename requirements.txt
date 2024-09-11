@@ -9,4 +9,4 @@ pillow
 realtime
 python-dotenv
 pika
-psycopg2
+psycopg2-binary
