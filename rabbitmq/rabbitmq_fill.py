@@ -6,7 +6,7 @@ import sys
 import time
 import os
 from dotenv import load_dotenv
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from helpers.logger import logger
 
@@ -167,12 +167,16 @@ def fetch_jobs_if_needed(conn, channel):
 
 # Validate job data before adding it to RabbitMQ
 def validate_job(job_data, conn):
-    created_at = job_data.get('created_at')
-    if created_at and datetime.now() - created_at < timedelta(days=1):
-        update_job_status(conn, job_data['id'], 'stopped', {"error": "Expired"})
-        logger.info(f"{job_data['id']} - Job is too old, updating database status to 'stopped'.")
+    try:
+        created_at = job_data.get('created_at')
+        if created_at and datetime.now(timezone.utc) - created_at < timedelta(days=1):
+            update_job_status(conn, job_data['id'], 'stopped', {"error": "Expired"})
+            logger.info(f"{job_data['id']} - Job is too old, updating database status to 'stopped'.")
+            return False
+        return True
+    except Exception as e:
+        logger.error(f"{job_data['id']} - Job validation raised exception: {e}")
         return False
-    return True
 
 # Main function to subscribe to PostgreSQL notifications and send new rows to RabbitMQ
 def supabase_to_rabbitmq():
