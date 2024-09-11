@@ -5,7 +5,7 @@ from typing import Any
 import torch
 from tqdm import tqdm
 
-from data_types.types import TextToImageInput
+from data_types.types import TextToImageRequestType
 from helpers.logger import logger, TqdmToLogger
 from config.consts import stable_diffusion_model_id, stable_diffusion_inference_steps, stable_diffusion_cfg
 from diffusers import DiffusionPipeline
@@ -30,7 +30,7 @@ class StableDiffusionManager:
         logger.info("do something")
 
 
-    def text_to_image(self, data: TextToImageInput, **kwargs) -> Any:
+    def text_to_image(self, data: TextToImageRequestType, **kwargs) -> Any:
         logger.info("Generating image with data: %s", data)
         with torch.no_grad():
             generator = torch.manual_seed(data.seed)

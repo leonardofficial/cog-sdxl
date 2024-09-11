@@ -5,6 +5,7 @@ import json
 import sys
 import time
 from datetime import datetime, timedelta, timezone
+from data_types.types import SupabaseJobQueueType
 from helpers.load_config import load_config
 from helpers.logger import logger
 from rabbitmq.rabbitmq_helpers import get_queue_length
@@ -55,16 +56,16 @@ def init_rabbitmq_connection():
         sys.exit(1)
 
 # Validate job data before adding it to RabbitMQ
-def validate_supabase_job_data(job_data, conn):
+def validate_supabase_job_data(job_data: SupabaseJobQueueType, conn):
     try:
-        created_at = job_data.get('created_at')
+        created_at = job_data.created_at
         if created_at and ((datetime.now(timezone.utc) - created_at) > timedelta(minutes=config.JOB_DISCARD_THRESHOLD)):
-            update_job_status(conn, job_data['id'], 'stopped', {"error": "expired (job too long in queue)"})
-            logger.info(f"{job_data['id']} - Job is too old, updating database status to 'stopped'.")
+            update_job_status(conn, job_data.id, 'stopped', {"error": "expired (job too long in queue)"})
+            logger.info(f"{job_data.id} - Job is too old, updating database status to 'stopped'.")
             return False
         return True
     except Exception as e:
-        logger.error(f"{job_data['id']} - Job validation raised exception: {e}")
+        logger.error(f"{job_data.id} - Job validation raised exception: {e}")
         return False
 
 # Fetch a job from the job_queue table in PostgreSQL.
@@ -95,7 +96,7 @@ def fetch_job_from_supabase(conn):
         job = cursor.fetchone()
         if job:
             job_id, request, created_at = job
-            job_data = {
+            job_data: SupabaseJobQueueType = {
                 'id': job_id,
                 'request': request,
                 'created_at': created_at

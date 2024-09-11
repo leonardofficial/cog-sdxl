@@ -35,6 +35,20 @@
 #         logger.exception(f"Error processing task ID: {task_id}, error: {e}")
 #         supabaseClient.from_('job_queue').update({'status': 'failed', "execution_info": create_execution_info(start_time)}).eq('id', task_id).execute()
 #
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
 # # Subscribe to supabase_helpers job queue
 # def subscribe_to_queue_new():
 #     logger.info(f"Connecting to Supabase with ID {SUPABASE_ID}")
@@ -51,6 +65,6 @@
 #         channel_1 = s.set_channel("realtime:public:job_queue")
 #         channel_1.join().on("INSERT", on_insert)
 #         s.listen()
-#     except Exception as e:
+#     except Exception as e:q
 #         logger.error(f"Error connecting to Supabase: {e}")
 #         raise ValueError("Error connecting to Supabase")

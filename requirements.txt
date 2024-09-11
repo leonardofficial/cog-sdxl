@@ -10,3 +10,4 @@ realtime
 python-dotenv
 pika
 psycopg2-binary
+pydantic

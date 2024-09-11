@@ -1,11 +1,11 @@
 from helpers.seed import generate_random_seed
 
-from data_types.types import TextToImageInput
+from data_types.types import TextToImageRequestType
 from stable_diffusion.stable_diffusion_manager import stableDiffusionManager
 from supabase_helpers.storage import upload_image
 
 
-def text_to_portrait(data: TextToImageInput):
+def text_to_portrait(data: TextToImageRequestType):
     if not data:
         raise ValueError("Data input for text-to-portrait is required")
 
