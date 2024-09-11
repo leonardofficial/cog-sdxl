@@ -1,13 +1,6 @@
 from supabase import create_client
-import os
-from dotenv import load_dotenv
+from helpers.load_config import load_config
 
-load_dotenv()
+config = load_config()
 
-# Read variables
-SUPABASE_URL = os.getenv('SUPABASE_URL')
-SUPABASE_KEY = os.getenv('SUPABASE_KEY')
-SUPABASE_ID = os.getenv('SUPABASE_ID')
-NODE_GPU = os.getenv('NODE_GPU')
-
-supabaseClient = create_client(SUPABASE_URL, SUPABASE_KEY)
+supabaseClient = create_client(config.SUPABASE_URL, config.SUPABASE_KEY)
