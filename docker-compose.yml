@@ -39,6 +39,6 @@ services:
       - ./.env
     networks:
       - net
-  networks:
-    net:
-      driver: bridge
+networks:
+  net:
+    driver: bridge
