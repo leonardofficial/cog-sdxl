@@ -29,5 +29,7 @@ services:
   moosaic-render-queue:
     image: rabbitmq:3-management
     container_name: moosaic-render-queue
+    ports:
+      - "15672:15672"
     env_file:
       - ./.env
