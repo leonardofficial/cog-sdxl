@@ -141,6 +141,7 @@ def fetch_jobs_if_needed(conn, channel):
 
             queue_state = channel.queue_declare(queue=RABBITMQ_QUEUE, passive=True)
             queue_length = queue_state.method.message_count
+            time.sleep(2)
 
     except Exception as e:
         logger.error(f"Error fetching jobs: {e}")
@@ -161,7 +162,7 @@ def supabase_to_rabbitmq():
     try:
         while True:
             fetch_jobs_if_needed(postgres_conn, rabbit_channel)
-            time.sleep(2)
+            time.sleep(10)
     finally:
         postgres_conn.close()
         rabbit_conn.close()
