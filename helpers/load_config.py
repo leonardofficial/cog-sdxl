@@ -1,5 +1,5 @@
-import os
-from pydantic import BaseSettings, ValidationError, Field
+from pydantic import ValidationError, Field
+from pydantic_settings import BaseSettings
 
 class Config(BaseSettings):
     SUPABASE_ID: str = Field(..., alias='SUPABASE_ID')  # Required
