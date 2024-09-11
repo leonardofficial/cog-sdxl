@@ -99,8 +99,13 @@ def fetch_job_from_supabase(conn):
         job = cursor.fetchone()
         if job:
             job_id, request, created_at = job
+            job_data = {
+                'id': job_id,
+                'request': request,
+                'created_at': created_at
+            }
             logger.info(f"Assigned job {job_id} to node {NODE_ID}")
-            return job
+            return job_data
         return None
     except Exception as e:
         logger.error(f"Error fetching job from PostgreSQL: {e}")
@@ -184,7 +189,7 @@ def validate_job(job_data, conn):
     try:
         created_at = job_data.get('created_at')
         if created_at and datetime.now(timezone.utc) - created_at < timedelta(days=1):
-            update_job_status(conn, job_data['id'], 'stopped', {"error": "Expired"})
+            update_job_status(conn, job_data['id'], 'stopped', {"error": "expired (job too long in queue)"})
             logger.info(f"{job_data['id']} - Job is too old, updating database status to 'stopped'.")
             return False
         return True
