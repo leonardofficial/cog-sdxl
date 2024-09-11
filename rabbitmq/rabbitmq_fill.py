@@ -17,8 +17,8 @@ load_dotenv()
 RABBITMQ_HOST = os.getenv('RABBITMQ_HOST')
 RABBITMQ_QUEUE = os.getenv('RABBITMQ_QUEUE')
 RABBITMQ_QUEUE_SIZE = int(os.getenv('RABBITMQ_QUEUE_SIZE', '0')) or None
-RABBITMQ_USER = os.getenv('RABBITMQ_USER')
-RABBITMQ_PASSWORD = os.getenv('RABBITMQ_PASSWORD')
+RABBITMQ_DEFAULT_USER = os.getenv('RABBITMQ_DEFAULT_USER')
+RABBITMQ_DEFAULT_PASS = os.getenv('RABBITMQ_DEFAULT_PASS')
 
 SUPABASE_POSTGRES_USER = os.getenv('SUPABASE_POSTGRES_USER')
 SUPABASE_POSTGRES_PASSWORD = os.getenv('SUPABASE_POSTGRES_PASSWORD')
@@ -40,10 +40,10 @@ def init_postgres_connection():
             port=SUPABASE_POSTGRES_PORT,
         )
         conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-        logger.info("PostgreSQL Connection successful")
+        logger.info("PostgreSQL connection successful")
         return conn
     except Exception as e:
-        logger.error(f"Failed to connect to PostgreSQL: {e}")
+        logger.error(f"PostgreSQL connection failed: {e}")
         sys.exit(1)
 
 # Initialize and return a RabbitMQ connection and channel.
@@ -52,10 +52,10 @@ def init_rabbitmq_connection():
         logger.info("RabbitMQ config: %s", {
                     'host': RABBITMQ_HOST,
                     'queue': RABBITMQ_QUEUE,
-                    'user': RABBITMQ_USER
+                    'user': RABBITMQ_DEFAULT_USER
                     })
 
-        credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASSWORD)
+        credentials = pika.PlainCredentials(RABBITMQ_DEFAULT_USER, RABBITMQ_DEFAULT_PASS)
         connection = pika.BlockingConnection(pika.ConnectionParameters(
             host=RABBITMQ_HOST,
             credentials=credentials
@@ -65,7 +65,7 @@ def init_rabbitmq_connection():
         logger.info("RabbitMQ connection successful")
         return connection, channel
     except Exception as e:
-        logger.error(f"Failed to connect to RabbitMQ: {e}")
+        logger.error(f"RabbitMQ connection failed: {e}")
         sys.exit(1)
 
 # Fetch a job from the job_queue table in PostgreSQL.
