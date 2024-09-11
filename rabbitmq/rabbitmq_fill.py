@@ -16,7 +16,7 @@ load_dotenv()
 # Environment variables
 RABBITMQ_HOST = os.getenv('RABBITMQ_HOST')
 RABBITMQ_QUEUE = os.getenv('RABBITMQ_QUEUE')
-RABBITMQ_QUEUE_SIZE = int(os.getenv('RABBIT MQ_QUEUE_SIZE', '0')) or None
+RABBITMQ_QUEUE_SIZE = int(os.getenv('RABBITMQ_QUEUE_SIZE', '0')) or None
 RABBITMQ_DEFAULT_USER = os.getenv('RABBITMQ_DEFAULT_USER')
 RABBITMQ_DEFAULT_PASS = os.getenv('RABBITMQ_DEFAULT_PASS')
 
