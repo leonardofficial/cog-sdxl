@@ -48,6 +48,12 @@ def init_postgres_connection():
 # Initialize and return a RabbitMQ connection and channel.
 def init_rabbitmq_connection():
     try:
+        logger.info("RabbitMQ config: %s", {
+                    'host': RABBITMQ_HOST,
+                    'queue': RABBITMQ_QUEUE,
+                    'user': RABBITMQ_USER
+                    })
+
         credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASSWORD)
         connection = pika.BlockingConnection(pika.ConnectionParameters(
             host=RABBITMQ_HOST,
@@ -167,6 +173,3 @@ def supabase_to_rabbitmq():
         postgres_conn.close()
         rabbit_conn.close()
         logger.info("Supabase & RabbitMQ connections terminated.")
-
-if __name__ == "__main__":
-    supabase_to_rabbitmq()

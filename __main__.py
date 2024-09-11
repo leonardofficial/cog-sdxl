@@ -12,9 +12,9 @@ if __name__ == "__main__":
     logger.info("Brand name here...")
     logger.info("Starting up... Specified mode: %s", MODE)
 
-    if MODE == 'consumer':
+    if MODE == "consumer":
         logger.info("Starting in consumer mode")
-    elif MODE == 'filler':
+    elif MODE == "filler":
         logger.info("Starting in filler mode")
         supabase_to_rabbitmq()
     else:
