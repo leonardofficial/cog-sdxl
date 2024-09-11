@@ -17,6 +17,7 @@ load_dotenv()
 RABBITMQ_HOST = os.getenv('RABBITMQ_HOST')
 RABBITMQ_QUEUE = os.getenv('RABBITMQ_QUEUE')
 RABBITMQ_QUEUE_SIZE = int(os.getenv('RABBITMQ_QUEUE_SIZE', '0')) or None
+JOB_DISCARD_THRESHOLD = int(os.getenv('JOB_DISCARD_THRESHOLD', '0')) or None
 RABBITMQ_DEFAULT_USER = os.getenv('RABBITMQ_DEFAULT_USER')
 RABBITMQ_DEFAULT_PASS = os.getenv('RABBITMQ_DEFAULT_PASS')
 
@@ -188,7 +189,7 @@ def add_job_to_rabbitmq(channel, job_data):
 def validate_job(job_data, conn):
     try:
         created_at = job_data.get('created_at')
-        if created_at and datetime.now(timezone.utc) - created_at < timedelta(days=1):
+        if created_at and datetime.now(timezone.utc) - created_at > timedelta(minutes=JOB_DISCARD_THRESHOLD):
             update_job_status(conn, job_data['id'], 'stopped', {"error": "expired (job too long in queue)"})
             logger.info(f"{job_data['id']} - Job is too old, updating database status to 'stopped'.")
             return False
@@ -201,6 +202,8 @@ def validate_job(job_data, conn):
 def supabase_to_rabbitmq():
     postgres_conn = init_postgres_connection()
     rabbit_conn, rabbit_channel = init_rabbitmq_connection()
+
+    logger.info("Stopping jobs older than %s minutes", JOB_DISCARD_THRESHOLD)
 
     try:
         while True:
