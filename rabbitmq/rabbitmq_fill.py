@@ -32,6 +32,7 @@ NODE_ID = os.getenv('NODE_ID')
 def init_postgres_connection():
     try:
         logger.info(f"PostgreSQL config: %s", {"host": SUPABASE_POSTGRES_HOST, "user": SUPABASE_POSTGRES_USER})
+
         conn = psycopg2.connect(
             user=SUPABASE_POSTGRES_USER,
             password=SUPABASE_POSTGRES_PASSWORD,
@@ -40,6 +41,7 @@ def init_postgres_connection():
             port=SUPABASE_POSTGRES_PORT,
         )
         conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+
         logger.info("PostgreSQL connection successful")
         return conn
     except Exception as e:
@@ -62,6 +64,7 @@ def init_rabbitmq_connection():
         ))
         channel = connection.channel()
         channel.queue_declare(queue=RABBITMQ_QUEUE, durable=True)
+
         logger.info("RabbitMQ connection successful")
         return connection, channel
     except Exception as e:
@@ -96,7 +99,7 @@ def fetch_job_from_supabase(conn):
         job = cursor.fetchone()
         if job:
             job_id, request, created_at = job
-            logger.info(f"Claimed job {job_id} by node {NODE_ID}")
+            logger.info(f"Fetched job {job_id} on node {NODE_ID}")
             return {'request': request, 'created_at': created_at}
         return None
     except Exception as e:
@@ -106,18 +109,27 @@ def fetch_job_from_supabase(conn):
         cursor.close()
 
 # Update the status of a job in the job_queue table.
-def update_job_status(conn, job_id, status):
+def update_job_status(conn, job_id, status, response_update=None):
     cursor = conn.cursor()
     try:
-        cursor.execute(
-            """
+        sql = """
             UPDATE job_queue
             SET status = %s
-            WHERE id = %s;
-            """,
-            (status, job_id)
-        )
+        """
+        params = [status]
+
+        if response_update is not None:
+            sql += ", response = COALESCE(response, '{}'::jsonb) || %s::jsonb"
+            params.append(response_update)
+
+        sql += " WHERE id = %s;"
+        params.append(job_id)
+
+        cursor.execute(sql, tuple(params))
         logger.info(f"Updated job {job_id} status to {status}.")
+
+        if response_update:
+            logger.info(f"Appended response update to job {job_id}: {response_update}")
     except Exception as e:
         logger.error(f"Failed to update job {job_id} status: {e}")
     finally:
@@ -132,7 +144,7 @@ def fetch_jobs_if_needed(conn, channel):
         logger.info(f"Current RabbitMQ queue length: {queue_length}")
 
         while queue_length < RABBITMQ_QUEUE_SIZE:
-            logger.info("Queue below threshold, fetching more jobs.")
+            logger.info(f"Queue below threshold ({RABBITMQ_QUEUE_SIZE}), fetching more jobs.")
             job_data = fetch_job_from_supabase(conn)
             if not job_data:
                 break
@@ -144,7 +156,7 @@ def fetch_jobs_if_needed(conn, channel):
                     body=json.dumps(job_data['request']),
                     properties=pika.BasicProperties(delivery_mode=2),
                 )
-                logger.info(f"Job added to RabbitMQ: {job_data['request']}")
+                logger.info(f"{job_data['id']} - Job added to RabbitMQ Queue: {job_data['request']}")
 
             queue_state = channel.queue_declare(queue=RABBITMQ_QUEUE, passive=True)
             queue_length = queue_state.method.message_count
@@ -154,10 +166,11 @@ def fetch_jobs_if_needed(conn, channel):
         logger.error(f"Error fetching jobs: {e}")
 
 # Validate job data before adding it to RabbitMQ
-def validate_job(job_data):
+def validate_job(job_data, conn):
     created_at = job_data.get('created_at')
     if created_at and datetime.now() - created_at < timedelta(days=1):
-        logger.info("Job validation failed: created_at is less than one day old.")
+        update_job_status(conn, job_data['id'], 'stopped', {"error": "Expired"})
+        logger.info(f"{job_data['id']} - Job is too old, updating database status to 'stopped'.")
         return False
     return True
 
