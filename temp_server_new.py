@@ -1,5 +1,5 @@
 import time
-from supabase_helpers.supabase_manager import supabaseClient, NODE_GPU
+from supabase_helpers.supabase_manager import supabaseClient
 from generate.text_to_image import text_to_image
 from helpers.logger import logger
 from realtime.connection import Socket
@@ -11,6 +11,7 @@ load_dotenv()
 SUPABASE_URL = os.getenv('SUPABASE_URL')
 SUPABASE_KEY = os.getenv('SUPABASE_KEY')
 SUPABASE_ID = os.getenv('SUPABASE_ID')
+NODE_GPU = os.getenv('NODE_GPU')
 
 def create_execution_info(start_time: float):
     elapsed_time = time.time() - start_time
