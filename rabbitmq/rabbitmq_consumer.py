@@ -1,3 +1,4 @@
+from data_types.types import SupabaseJobQueueType
 from generate.text_to_image import text_to_image
 from helpers.load_config import load_config
 import pika
@@ -74,15 +75,14 @@ def consume_queue(ch, method, properties, body):
 
 # Process the message body
 def process_message(body):
-    task_id = body.id
-    task_data = body.get("request", {})
-    logger.info(f"Processing task ID: {task_id} with data: {task_data}")
+    task_data = SupabaseJobQueueType.from_json(body)
+    logger.info(f"Processing Job {task_data.id}")
 
     start_time = time.time()
 
     try:
         #supabaseClient.from_('job_queue').update({'status': 'running'}).eq('id', task_id).execute()
-        generation_response = text_to_image(task_data)
+        generation_response = text_to_image(task_data.request)
         logger.info(f"Generation response: {generation_response}")
         #execution_info = create_execution_info(start_time)
        # supabaseClient.from_('job_queue').update({'status': 'succeeded', "response": generation_response, "execution_info": execution_info}).eq('id', task_id).execute()
