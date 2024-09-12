@@ -24,14 +24,24 @@ class StableDiffusionManager:
         device = get_device()
         logger.info("Downloading Stable Diffusion model weights...")
         try:
-            progress_bar = tqdm(desc="Downloading model weights", unit="B", unit_scale=True, file=TqdmToLogger(logger, level=logging.INFO))
+            progress_logs = 10  # Number of log entries during progress
+            total_progress_logs = 0
+            log_interval = 0  # Will be determined dynamically based on total size
 
             def progress_callback(current, total):
-                progress_bar.total = total
-                progress_bar.n = current
-                progress_bar.refresh()
+                nonlocal log_interval, total_progress_logs
 
-            DiffusionPipeline.from_pretrained(
+                # Calculate the log interval on the first call
+                if log_interval == 0:
+                    log_interval = max(total // progress_logs, 1)
+
+                # Log progress at defined intervals
+                if current >= total_progress_logs * log_interval:
+                    total_progress_logs += 1
+                    percent_complete = (current / total) * 100
+                    logger.info(f"Downloading model weights: {percent_complete:.1f}% complete")
+
+            self.pipeline = DiffusionPipeline.from_pretrained(
                 stable_diffusion_model_id,
                 torch_dtype=torch.float16 if device == "cuda" else torch.float32,
                 cache_dir="./model_cache",
@@ -41,9 +51,7 @@ class StableDiffusionManager:
                 progress_callback=progress_callback,  # Custom progress callback
             )
 
-            progress_bar.close()
             self.pipeline = self.pipeline.to(device)  # Move to specified device
-            # self.initialize_plugins()
             logger.info("Model weights downloaded successfully.")
         except Exception as e:
             logger.exception("Error during model weight download")
