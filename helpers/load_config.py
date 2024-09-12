@@ -1,3 +1,5 @@
+import logging
+
 from pydantic import ValidationError, Field
 from pydantic_settings import BaseSettings
 
@@ -20,7 +22,7 @@ class Config(BaseSettings):
     RABBITMQ_DEFAULT_VHOST: str = Field(..., alias='RABBITMQ_DEFAULT_VHOST')
 
     JOB_DISCARD_THRESHOLD: int = Field(1440, alias='JOB_DISCARD_THRESHOLD')  # Required
-    LOGGING_LEVEL: str = Field("info", alias='LOGGING_LEVEL')
+    LOGGING_LEVEL = logging.getLevelName([Field("INFO", alias='LOGGING_LEVEL')])
 
     NODE_GPU: str = Field(..., alias='NODE_GPU')  # Required
     NODE_ID: str = Field(..., alias='NODE_ID')  # Required
