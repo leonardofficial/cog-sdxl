@@ -1,6 +1,6 @@
 import logging
 from io import BytesIO
-from typing import Any
+from typing import Any, List
 
 import torch
 from tqdm import tqdm
@@ -10,6 +10,7 @@ from helpers.logger import logger, TqdmToLogger
 from config.consts import stable_diffusion_model_id, stable_diffusion_inference_steps, stable_diffusion_cfg
 from diffusers import DiffusionPipeline
 from helpers.cuda import get_device
+
 
 class StableDiffusionManager:
     def __init__(self, model_name: str):
@@ -74,6 +75,11 @@ class StableDiffusionManager:
     def reset_pipeline(self):
         self.initialize_pipeline()
 
+_stableDiffusionManager: StableDiffusionManager
 
-#stableDiffusionManager = StableDiffusionManager(stable_diffusion_model_id)
-stableDiffusionManager = None
+def get_stable_diffusion() -> StableDiffusionManager:
+    global _stableDiffusionManager
+    if _stableDiffusionManager is None:
+        _stableDiffusionManager = StableDiffusionManager("Stable Diffusion")
+    return _stableDiffusionManager
+
