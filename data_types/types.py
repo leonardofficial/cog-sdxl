@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import datetime
 from typing import List, Optional, Any
 
 @dataclass
@@ -22,6 +23,6 @@ class SupabaseJobQueueType:
     id: str
     request: TextToImageRequestType
     status: str
-    created_at: str
+    created_at: datetime
     execution_info: Optional[Any] = None
     response: Optional[Any] = None

@@ -132,9 +132,6 @@ def update_job_status(conn, job_id, status, execution_info_update=None):
 
         cursor.execute(sql, tuple(params))
         logger.info(f"Updated job {job_id} status to {status}.")
-
-        if execution_info_update:
-            logger.info(f"Appended response update to job {job_id}: {execution_info_update}")
     except Exception as e:
         logger.error(f"Failed to update job {job_id} status: {e}")
     finally:
@@ -163,17 +160,17 @@ def fetch_jobs_if_needed(conn, channel):
         logger.error(f"Error fetching jobs: {e}")
 
 # Add a job to the RabbitMQ queue.
-def add_job_to_rabbitmq(channel, job_data):
+def add_job_to_rabbitmq(channel, job_data: SupabaseJobQueueType):
     try:
         channel.basic_publish(
             exchange='',
             routing_key=config.RABBITMQ_QUEUE,
             body=json.dumps(job_data),
-            properties=pika.BasicProperties(delivery_mode=2, message_id=job_data['id']),
+            properties=pika.BasicProperties(delivery_mode=2, message_id=job_data.id),
         )
-        logger.info(f"{job_data['id']} - Job added to RabbitMQ Queue: {job_data}")
+        logger.info(f"{job_data.id} - Job added to RabbitMQ Queue: {job_data}")
     except Exception as e:
-        logger.error(f"{job_data['id']} - Failed to add job to RabbitMQ: {e}")
+        logger.error(f"{job_data.id} - Failed to add job to RabbitMQ: {e}")
 
 # Main function to subscribe to PostgreSQL notifications and send new rows to RabbitMQ
 def supabase_to_rabbitmq():
