@@ -1,6 +1,7 @@
 import json
 from dataclasses import dataclass, asdict, field
 from datetime import datetime
+from io import BytesIO
 from typing import List, Optional, Any
 
 @dataclass
@@ -76,4 +77,20 @@ class SupabaseJobQueueType:
             created_at=created_at,
             execution_info=data.get('execution_info'),
             response=data.get('response')
+        )
+
+@dataclass
+class StableDiffusionExecutionType:
+    image: BytesIO
+    runtime: int
+
+    def json(self):
+        data_dict = asdict(self)
+        return json.dumps(data_dict, default=str)
+
+    @classmethod
+    def from_json(cls, data: dict):
+        return cls(
+            image=data['image'],
+            runtime=data['runtime']
         )

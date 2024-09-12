@@ -16,8 +16,8 @@ def text_to_portrait(data: TextToImageRequestType):
     for i in range(4):
         current_seed = generate_random_seed()
 
-        image = stableDiffusionManager.text_to_image(data, seed=current_seed)
-        filename = upload_image("personas", image)
+        response = stableDiffusionManager.text_to_image(data, seed=current_seed)
+        filename = upload_image("personas", response.image)
         images.append({"image": f"{filename}.png", "seed": current_seed})
 
 

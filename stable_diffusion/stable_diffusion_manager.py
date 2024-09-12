@@ -1,11 +1,12 @@
 import logging
+from datetime import time, datetime
 from io import BytesIO
 from typing import Any, List
 
 import torch
 from tqdm import tqdm
 
-from data_types.types import TextToImageRequestType
+from data_types.types import TextToImageRequestType, StableDiffusionExecutionType
 from helpers.logger import logger, TqdmToLogger
 from config.consts import stable_diffusion_model_id, stable_diffusion_inference_steps, stable_diffusion_cfg
 from diffusers import DiffusionPipeline
@@ -28,12 +29,14 @@ class StableDiffusionManager:
                 stable_diffusion_model_id,
                 torch_dtype=torch.float16 if device == "cuda" else torch.float32,
                 cache_dir="./model_cache",
-                resume_download=True,  # Resume partially downloaded files
                 force_download=False,  # Avoid forcing a re-download
                 local_files_only=False,  # Download from the hub if not found locally
             )
 
             self.pipeline = self.pipeline.to(device)  # Move to specified device
+
+            # Disable progress bar
+            self.pipeline.set_progress_bar_config(disable=True)
             logger.info("Model weights downloaded successfully.")
         except Exception as e:
             logger.exception("Error during model weight download")
@@ -43,8 +46,10 @@ class StableDiffusionManager:
     def initialize_plugins(self):
         logger.info("Initializing plugins...")
 
-    def text_to_image(self, data: TextToImageRequestType, **kwargs) -> Any:
+    def text_to_image(self, data: TextToImageRequestType, **kwargs) -> StableDiffusionExecutionType:
         logger.info("Generating image with data: %s", data)
+
+        start_time = datetime.now()
         with torch.no_grad():
             generator = torch.manual_seed(data.seed)
             try:
@@ -54,7 +59,6 @@ class StableDiffusionManager:
                     def progress_callback(step, t, latents):
                         pbar.update(1)
 
-                    logger.info("Generating image without ControlNet")
                     image = self.pipeline(
                         data.prompt,
                         negative_prompt=data.negative_prompt,
@@ -63,8 +67,7 @@ class StableDiffusionManager:
                         height=data.height,
                         width=data.width,
                         num_inference_steps=inference_steps,
-                        callback=progress_callback,
-                        callback_steps=1,
+                        callback_on_step_end=progress_callback,
                         loras=data.plugins
                     ).images[0]
             except Exception as e:
@@ -75,7 +78,10 @@ class StableDiffusionManager:
             image.save(img_io, 'PNG')
             img_io.seek(0)
 
-            return img_io
+            runtime = int((datetime.now() - start_time).total_seconds() * 1000)
+            logger.info(f"Completed Text-To-Image Request in {runtime} seconds")
+
+            return StableDiffusionExecutionType(image=img_io, runtime=runtime)
 
     # Retrieve the current Stable Diffusion pipeline.
     def get_pipeline(self) -> DiffusionPipeline:
