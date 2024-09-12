@@ -5,7 +5,7 @@ import json
 import sys
 import time
 from datetime import datetime, timedelta, timezone
-from data_types.types import SupabaseJobQueueType
+from data_types.types import SupabaseJobQueueType, TextToImageRequestType
 from helpers.load_config import load_config
 from helpers.logger import logger
 from rabbitmq.rabbitmq_helpers import get_queue_length
@@ -68,7 +68,7 @@ def validate_supabase_job_data(job_data: SupabaseJobQueueType, conn):
         return False
 
 # Fetch a job from the job_queue table in PostgreSQL.
-def fetch_job_from_supabase(conn):
+def fetch_job_from_supabase(conn) -> SupabaseJobQueueType:
     cursor = conn.cursor()
     try:
         cursor.execute(
@@ -94,10 +94,14 @@ def fetch_job_from_supabase(conn):
         )
         job = cursor.fetchone()
         if job:
-            print(job)
-            job_data = SupabaseJobQueueType.from_json(job)
-            print(job_data)
-            logger.info(f"Assigned job {job['id']} to node {config.NODE_ID}")
+            job_id, request, created_at = job
+            job_data = SupabaseJobQueueType(
+                id=job_id,
+                request=TextToImageRequestType.from_json(request),
+                created_at=created_at,
+                status='assigned'
+            )
+            logger.info(f"Assigned job {job_id} to node {config.NODE_ID}")
             return job_data
         return None
     except Exception as e:
