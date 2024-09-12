@@ -18,32 +18,36 @@ class StableDiffusionManager:
         self.pipeline = None
         #self.plugins: List[LoraPlugin] = []
         self.download_weights()  # Download weights before anything else
-        self.initialize_pipeline()
 
     # Download weights for the Stable Diffusion model
     def download_weights(self):
+        device = get_device()
         logger.info("Downloading Stable Diffusion model weights...")
         try:
-            # Download weights without moving to the device
+            progress_bar = tqdm(desc="Downloading model weights", unit="B", unit_scale=True, file=TqdmToLogger(logger, level=logging.INFO))
+
+            def progress_callback(current, total):
+                progress_bar.total = total
+                progress_bar.n = current
+                progress_bar.refresh()
+
             DiffusionPipeline.from_pretrained(
                 stable_diffusion_model_id,
-                torch_dtype=torch.float32,  # Default to CPU dtype for download
-                cache_dir="./model_cache"  # Optional: specify cache directory if needed
+                torch_dtype=torch.float16 if device == "cuda" else torch.float32,
+                cache_dir="./model_cache",
+                resume_download=True,  # Resume partially downloaded files
+                force_download=False,  # Avoid forcing a re-download
+                local_files_only=False,  # Download from the hub if not found locally
+                progress_callback=progress_callback,  # Custom progress callback
             )
+
+            progress_bar.close()
+            self.pipeline = self.pipeline.to(device)  # Move to specified device
+            # self.initialize_plugins()
             logger.info("Model weights downloaded successfully.")
         except Exception as e:
             logger.exception("Error during model weight download")
             raise e
-
-    # Initialize the Stable Diffusion pipeline.
-    def initialize_pipeline(self):
-        device = get_device()
-        self.pipeline = DiffusionPipeline.from_pretrained(
-            stable_diffusion_model_id,
-            torch_dtype=torch.float16 if device == "cuda" else torch.float32
-        )
-        self.pipeline = self.pipeline.to(device)  # Move to specified device
-        self.initialize_plugins()
 
     # Apply all registered plugins to the pipeline.
     def initialize_plugins(self):
