@@ -96,11 +96,12 @@ def fetch_job_from_supabase(conn):
         job = cursor.fetchone()
         if job:
             job_id, request, created_at = job
-            job_data: SupabaseJobQueueType = {
-                'id': job_id,
-                'request': request,
-                'created_at': created_at
-            }
+            job_data = SupabaseJobQueueType(
+                id=job_id,
+                request=request,
+                created_at=created_at,
+                status='assigned'
+            )
             logger.info(f"Assigned job {job_id} to node {config.NODE_ID}")
             return job_data
         return None

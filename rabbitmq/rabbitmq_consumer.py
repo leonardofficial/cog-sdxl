@@ -4,6 +4,7 @@ import pika
 import time
 from pika.exceptions import AMQPConnectionError, ChannelClosedByBroker
 from helpers.logger import logger
+from rabbitmq.rabbitmq_helpers import get_queue_length
 
 # Load configuration settings
 config = load_config()
@@ -32,6 +33,7 @@ def subscribe_to_rabbitmq():
             channel.queue_declare(queue=config.RABBITMQ_QUEUE, durable=True)
 
             logger.info(f"Subscribed to queue: {config.RABBITMQ_QUEUE}")
+            logger.info("Current queue length: %d", get_queue_length(channel))
             channel.basic_consume(
                 queue=config.RABBITMQ_QUEUE,
                 on_message_callback=consume_queue,
@@ -72,7 +74,7 @@ def consume_queue(ch, method, properties, body):
 
 # Process the message body
 def process_message(body):
-    task_id = body['id']
+    task_id = body.id
     task_data = body.get("request", {})
     logger.info(f"Processing task ID: {task_id} with data: {task_data}")
 
