@@ -68,7 +68,7 @@ def validate_supabase_job_data(job_data: SupabaseJobQueueType, conn):
         return False
 
 # Fetch a job from the job_queue table in PostgreSQL.
-def fetch_job_from_supabase(conn):
+def fetch_job_from_supabase(conn) -> SupabaseJobQueueType:
     cursor = conn.cursor()
     try:
         cursor.execute(
@@ -161,6 +161,8 @@ def fetch_jobs_if_needed(conn, channel):
 # Add a job to the RabbitMQ queue.
 def add_job_to_rabbitmq(channel, job_data: SupabaseJobQueueType):
     try:
+        print(isinstance(job_data, SupabaseJobQueueType))
+        print(job_data.json())
         channel.basic_publish(
             exchange='',
             routing_key=config.RABBITMQ_QUEUE,
