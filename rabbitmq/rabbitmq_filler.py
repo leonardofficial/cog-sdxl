@@ -161,14 +161,13 @@ def fetch_jobs_if_needed(conn, channel):
 # Add a job to the RabbitMQ queue.
 def add_job_to_rabbitmq(channel, job_data: SupabaseJobQueueType):
     try:
-        print(job_data.json())
         channel.basic_publish(
             exchange='',
             routing_key=config.RABBITMQ_QUEUE,
             body=job_data.json(),
             properties=pika.BasicProperties(delivery_mode=2, message_id=job_data.id),
         )
-        logger.info(f"{job_data.id} - Job added to RabbitMQ Queue: {job_data}")
+        logger.info(f"{job_data.id} - Job added to RabbitMQ Queue")
     except Exception as e:
         logger.error(f"{job_data.id} - Failed to add job to RabbitMQ: {e}")
 
