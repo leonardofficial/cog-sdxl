@@ -25,7 +25,8 @@ def text_to_image(request: TextToImageRequestType):
                 print(f"request.seed: {request.seed}")
                 current_seed = request.seed if request.seed is not None else generate_random_seed()
                 print(f"current_seed: {current_seed}")
-                image = stable_diffusion.text_to_image(request, seed=current_seed)
+                request.seed = current_seed
+                image = stable_diffusion.text_to_image(request)
             except Exception as image_generation_error:
                 logger.error(f"Error generating image: {image_generation_error}")
                 return {"error": "Image generation failed", "details": str(image_generation_error)}
