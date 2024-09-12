@@ -1,10 +1,15 @@
 import io
 import logging
 
+from helpers.load_config import load_config
+
 # Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+config = load_config()
+logging.basicConfig(level=config.LOGGING_LEVEL, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger()
 
+# Set pika logging level to WARNING (otherwise it will log a lot of info messages)
+logging.getLogger("pika").setLevel(logging.WARNING)
 
 # todo: do we need this?
 class TqdmToLogger(io.StringIO):
