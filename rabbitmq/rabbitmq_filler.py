@@ -68,7 +68,7 @@ def validate_supabase_job_data(job_data: SupabaseJobQueueType, conn):
         return False
 
 # Fetch a job from the job_queue table in PostgreSQL.
-def fetch_job_from_supabase(conn) -> SupabaseJobQueueType:
+def fetch_job_from_supabase(conn):
     cursor = conn.cursor()
     try:
         cursor.execute(
@@ -94,14 +94,8 @@ def fetch_job_from_supabase(conn) -> SupabaseJobQueueType:
         )
         job = cursor.fetchone()
         if job:
-            job_id, request, created_at = job
-            job_data = SupabaseJobQueueType(
-                id=job_id,
-                request=request,
-                created_at=created_at,
-                status='assigned'
-            )
-            logger.info(f"Assigned job {job_id} to node {config.NODE_ID}")
+            job_data = SupabaseJobQueueType.from_json(job)
+            logger.info(f"Assigned job {job['id']} to node {config.NODE_ID}")
             return job_data
         return None
     except Exception as e:
@@ -161,7 +155,6 @@ def fetch_jobs_if_needed(conn, channel):
 # Add a job to the RabbitMQ queue.
 def add_job_to_rabbitmq(channel, job_data: SupabaseJobQueueType):
     try:
-        print(isinstance(job_data, SupabaseJobQueueType))
         print(job_data.json())
         channel.basic_publish(
             exchange='',
