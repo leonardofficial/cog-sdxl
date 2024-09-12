@@ -5,7 +5,7 @@ from helpers.load_config import load_config
 
 # Configure logging
 config = load_config()
-logging.basicConfig(level=config.LOGGING_LEVEL, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.getLevelName(config.LOGGING_LEVEL), format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger()
 
 # Set pika logging level to WARNING (otherwise it will log a lot of info messages)
