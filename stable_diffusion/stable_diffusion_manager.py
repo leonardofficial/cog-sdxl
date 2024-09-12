@@ -56,7 +56,7 @@ class StableDiffusionManager:
                 inference_steps = stable_diffusion_inference_steps
                 tqdm_out = TqdmToLogger(logger, level=logging.INFO)
                 with tqdm(total=inference_steps, desc="Image generation", file=tqdm_out) as pbar:
-                    def progress_callback(pipeline, i, t, callback_kwargs):
+                    def progress_callback(step, t, latents):
                         pbar.update(1)
 
                     image = self.pipeline(
@@ -67,7 +67,7 @@ class StableDiffusionManager:
                         height=data.height,
                         width=data.width,
                         num_inference_steps=inference_steps,
-                        callback_on_step_end=progress_callback,
+                        callback=progress_callback,
                         loras=data.plugins
                     ).images[0]
             except Exception as e:
