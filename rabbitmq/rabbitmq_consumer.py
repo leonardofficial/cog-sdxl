@@ -1,3 +1,5 @@
+import json
+
 from data_types.types import SupabaseJobQueueType
 from generate.text_to_image import text_to_image
 from helpers.load_config import load_config
@@ -64,7 +66,8 @@ def consume_queue(ch, method, properties, body):
         logger.info(f"Received task from queue: {body}")
 
         # Process the messages
-        process_message(body)
+        decoded_body = body.decode('utf-8')
+        process_message(decoded_body)
 
         # Acknowledge the message only after successful processing
         ch.basic_ack(delivery_tag=method.delivery_tag)
@@ -75,7 +78,7 @@ def consume_queue(ch, method, properties, body):
 
 # Process the message body
 def process_message(body):
-    task_data = SupabaseJobQueueType.from_json(body)
+    task_data = SupabaseJobQueueType.from_json(json.loads(body))
     logger.info(f"Processing Job {task_data.id}")
 
     start_time = time.time()
@@ -88,5 +91,5 @@ def process_message(body):
        # supabaseClient.from_('job_queue').update({'status': 'succeeded', "response": generation_response, "execution_info": execution_info}).eq('id', task_id).execute()
         # logger.info(f"Task {task_id} processed in {execution_info.get('ms') / 1000:.2f} seconds, with response: {generation_response}")
     except Exception as e:
-        logger.exception(f"Error processing task ID: {task_id}, error: {e}")
-        supabaseClient.from_('job_queue').update({'status': 'failed', "execution_info": create_execution_info(start_time)}).eq('id', task_id).execute()
+        logger.exception(f"Error processing task ID: {task_data.id}, error: {e}")
+        #supabaseClient.from_('job_queue').update({'status': 'failed', "execution_info": create_execution_info(start_time)}).eq('id', task_id).execute()
