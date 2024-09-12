@@ -24,3 +24,5 @@ __*.zip
 .env.local
 .env.production
 .env
+model_cache
+.idea
