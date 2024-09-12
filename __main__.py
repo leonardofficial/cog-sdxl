@@ -4,6 +4,8 @@ from rabbitmq.rabbitmq_filler import supabase_to_rabbitmq
 from dotenv import load_dotenv
 import os
 
+from stable_diffusion.stable_diffusion_manager import get_stable_diffusion
+
 load_dotenv()
 
 # Read variables
@@ -15,6 +17,7 @@ if __name__ == "__main__":
 
     if MODE == "consumer":
         logger.info("Starting in consumer mode")
+        get_stable_diffusion() # Ensure the Stable Diffusion model is loaded before starting the consumer
         subscribe_to_rabbitmq()
     elif MODE == "filler":
         logger.info("Starting in filler mode")

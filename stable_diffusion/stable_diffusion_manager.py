@@ -16,20 +16,38 @@ class StableDiffusionManager:
     def __init__(self, model_name: str):
         self.model_name = model_name
         self.pipeline = None
-        self.plugins: List[LoraPlugin] = []
+        #self.plugins: List[LoraPlugin] = []
+        self.download_weights()  # Download weights before anything else
         self.initialize_pipeline()
+
+    # Download weights for the Stable Diffusion model
+    def download_weights(self):
+        logger.info("Downloading Stable Diffusion model weights...")
+        try:
+            # Download weights without moving to the device
+            DiffusionPipeline.from_pretrained(
+                stable_diffusion_model_id,
+                torch_dtype=torch.float32,  # Default to CPU dtype for download
+                cache_dir="./model_cache"  # Optional: specify cache directory if needed
+            )
+            logger.info("Model weights downloaded successfully.")
+        except Exception as e:
+            logger.exception("Error during model weight download")
+            raise e
 
     # Initialize the Stable Diffusion pipeline.
     def initialize_pipeline(self):
         device = get_device()
-        self.pipeline = DiffusionPipeline.from_pretrained(stable_diffusion_model_id, torch_dtype=torch.float16 if device == "cuda" else torch.float32)
-        self.pipeline = self.pipeline.to(device) # Move to specified device
+        self.pipeline = DiffusionPipeline.from_pretrained(
+            stable_diffusion_model_id,
+            torch_dtype=torch.float16 if device == "cuda" else torch.float32
+        )
+        self.pipeline = self.pipeline.to(device)  # Move to specified device
         self.initialize_plugins()
 
     # Apply all registered plugins to the pipeline.
     def initialize_plugins(self):
-        logger.info("do something")
-
+        logger.info("Initializing plugins...")
 
     def text_to_image(self, data: TextToImageRequestType, **kwargs) -> Any:
         logger.info("Generating image with data: %s", data)
@@ -75,11 +93,11 @@ class StableDiffusionManager:
     def reset_pipeline(self):
         self.initialize_pipeline()
 
-_stableDiffusionManager: StableDiffusionManager
+
+_stableDiffusionManager: StableDiffusionManager = None
 
 def get_stable_diffusion() -> StableDiffusionManager:
     global _stableDiffusionManager
     if _stableDiffusionManager is None:
         _stableDiffusionManager = StableDiffusionManager("Stable Diffusion")
     return _stableDiffusionManager
-
