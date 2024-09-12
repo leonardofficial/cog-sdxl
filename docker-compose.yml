@@ -11,6 +11,8 @@ services:
       - MODE=consumer
     env_file:
       - ./.env
+    volumes:
+      - "./model_cache:/app/model_cache"
     deploy:
       resources:
         reservations:
