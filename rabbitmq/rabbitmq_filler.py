@@ -61,7 +61,6 @@ def validate_supabase_job_data(job_data: SupabaseJobQueueType, conn):
         created_at = job_data.created_at
         if created_at and ((datetime.now(timezone.utc) - created_at) > timedelta(minutes=config.JOB_DISCARD_THRESHOLD)):
             update_job_status(conn, job_data.id, 'stopped', {"error": "expired (job too long in queue)"})
-            logger.info(f"{job_data.id} - Job is too old, updating database status to 'stopped'.")
             return False
         return True
     except Exception as e:
