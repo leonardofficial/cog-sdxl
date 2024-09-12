@@ -4,6 +4,8 @@ from pydantic import ValidationError, Field
 from pydantic_settings import BaseSettings
 
 class Config(BaseSettings):
+    MODE: str = Field(..., alias='MODE')  # Required
+
     SUPABASE_ID: str = Field(..., alias='SUPABASE_ID')  # Required
     SUPABASE_URL: str = Field(..., alias='SUPABASE_URL')  # Required
     SUPABASE_KEY: str = Field(..., alias='SUPABASE_KEY')  # Required

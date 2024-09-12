@@ -24,23 +24,6 @@ class StableDiffusionManager:
         device = get_device()
         logger.info("Downloading Stable Diffusion model weights...")
         try:
-            progress_logs = 10  # Number of log entries during progress
-            total_progress_logs = 0
-            log_interval = 0  # Will be determined dynamically based on total size
-
-            def progress_callback(current, total):
-                nonlocal log_interval, total_progress_logs
-
-                # Calculate the log interval on the first call
-                if log_interval == 0:
-                    log_interval = max(total // progress_logs, 1)
-
-                # Log progress at defined intervals
-                if current >= total_progress_logs * log_interval:
-                    total_progress_logs += 1
-                    percent_complete = (current / total) * 100
-                    logger.info(f"Downloading model weights: {percent_complete:.1f}% complete")
-
             self.pipeline = DiffusionPipeline.from_pretrained(
                 stable_diffusion_model_id,
                 torch_dtype=torch.float16 if device == "cuda" else torch.float32,
@@ -48,7 +31,6 @@ class StableDiffusionManager:
                 resume_download=True,  # Resume partially downloaded files
                 force_download=False,  # Avoid forcing a re-download
                 local_files_only=False,  # Download from the hub if not found locally
-                progress_callback=progress_callback,  # Custom progress callback
             )
 
             self.pipeline = self.pipeline.to(device)  # Move to specified device
