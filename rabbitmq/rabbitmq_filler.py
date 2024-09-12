@@ -95,6 +95,7 @@ def fetch_job_from_supabase(conn):
         job = cursor.fetchone()
         if job:
             job_data = SupabaseJobQueueType.from_json(job)
+            print(job_data)
             logger.info(f"Assigned job {job['id']} to node {config.NODE_ID}")
             return job_data
         return None
