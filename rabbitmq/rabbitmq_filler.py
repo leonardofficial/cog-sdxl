@@ -164,7 +164,7 @@ def add_job_to_rabbitmq(channel, job_data: SupabaseJobQueueType):
         channel.basic_publish(
             exchange='',
             routing_key=config.RABBITMQ_QUEUE,
-            body=json.dumps(job_data),
+            body=job_data.json(),
             properties=pika.BasicProperties(delivery_mode=2, message_id=job_data.id),
         )
         logger.info(f"{job_data.id} - Job added to RabbitMQ Queue: {job_data}")

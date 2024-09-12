@@ -1,3 +1,4 @@
+from data_types.types import SupabaseJobQueueType
 from helpers.load_config import load_config
 from helpers.logger import logger
 
