@@ -23,6 +23,7 @@ class ImagePluginType:
 
 @dataclass
 class TextToImageRequestType:
+    type: str
     prompt: str
     num_options: int = 1
     height: int = 1024
@@ -41,6 +42,7 @@ class TextToImageRequestType:
     def from_json(cls, data: dict):
         plugins = [ImagePluginType.from_json(plugin) for plugin in data.get('plugins', [])]
         return cls(
+            type=data['type'],
             prompt=data['prompt'],
             num_options=data.get('num_options', 1),
             height=data.get('height', 1024),
@@ -93,3 +95,5 @@ class StableDiffusionExecutionType:
             image=data['image'],
             runtime=data['runtime']
         )
+
+# todo: add jobstatus types

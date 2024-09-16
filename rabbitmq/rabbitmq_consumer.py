@@ -99,4 +99,5 @@ def process_message(body):
         # logger.info(f"Task {task_id} processed in {execution_info.get('ms') / 1000:.2f} seconds, with response: {generation_response}")
     except Exception as e:
         logger.exception(f"Error processing task ID: {task_data.id}, error: {e}")
+        update_job_queue(task_data.id, 'failed', None, {"error": e})
         #supabaseClient.from_('job_queue').update({'status': 'failed', "execution_info": create_execution_info(start_time)}).eq('id', task_id).execute()
