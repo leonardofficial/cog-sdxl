@@ -1,7 +1,6 @@
 import json
 from dataclasses import dataclass, asdict, field
 from datetime import datetime
-from io import BytesIO
 from typing import List, Optional, Any
 
 @dataclass

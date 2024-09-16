@@ -1,13 +1,15 @@
 import json
-
 from data_types.types import SupabaseJobQueueType
 from generate.text_to_image import text_to_image
+from generate.text_to_portrait import text_to_portrait
+from helpers.execution_info import create_execution_info
 from helpers.load_config import load_config
 import pika
 import time
 from pika.exceptions import AMQPConnectionError, ChannelClosedByBroker
 from helpers.logger import logger
 from rabbitmq.rabbitmq_helpers import get_queue_length
+from supabase_helpers.update_job_queue import update_job_queue
 
 # Load configuration settings
 config = load_config()
@@ -84,10 +86,17 @@ def process_message(body):
     start_time = time.time()
 
     try:
-        #supabaseClient.from_('job_queue').update({'status': 'running'}).eq('id', task_id).execute()
-        generation_response = text_to_image(task_data.request)
-        logger.info(f"Generation response: {generation_response}")
-        #execution_info = create_execution_info(start_time)
+        if task_data.request.type == "text-to-image":
+            response = text_to_image(task_data.request)
+        elif task_data.request.type == "text-to-portrait":
+            response = text_to_portrait(task_data.request)
+        else:
+            logger.error(f"Unsupported task type: {task_data.request.type}")
+            return
+
+        execution_info = create_execution_info(start_time)
+        update_job_queue(task_data.id, 'succeeded', response, execution_info)
+
        # supabaseClient.from_('job_queue').update({'status': 'succeeded', "response": generation_response, "execution_info": execution_info}).eq('id', task_id).execute()
         # logger.info(f"Task {task_id} processed in {execution_info.get('ms') / 1000:.2f} seconds, with response: {generation_response}")
     except Exception as e:
