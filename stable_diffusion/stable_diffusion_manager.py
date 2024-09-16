@@ -82,7 +82,7 @@ class StableDiffusionManager:
             runtime = int((datetime.now() - start_time).total_seconds() * 1000)
             logger.info(f"Completed Text-To-Image Request in {runtime} seconds")
 
-            return StableDiffusionExecutionType(image=img_io, runtime=runtime)
+            return StableDiffusionExecutionType(image=img_io.read(), runtime=runtime)
 
     # Retrieve the current Stable Diffusion pipeline.
     def get_pipeline(self) -> DiffusionPipeline:

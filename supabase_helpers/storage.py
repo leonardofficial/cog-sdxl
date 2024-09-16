@@ -5,7 +5,7 @@ from supabase_helpers.supabase_manager import get_supabase
 
 
 # Upload image to Supabase storage
-def upload_image(bucket: str, data: BytesIO):
+def upload_image(bucket: str, data: bytes):
     filename = get_filename()
 
     try:
