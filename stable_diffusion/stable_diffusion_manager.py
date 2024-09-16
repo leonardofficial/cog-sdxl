@@ -68,6 +68,7 @@ class StableDiffusionManager:
                         width=data.width,
                         num_inference_steps=inference_steps,
                         callback=progress_callback,
+                        callback_steps=1,
                         loras=data.plugins
                     ).images[0]
             except Exception as e:
