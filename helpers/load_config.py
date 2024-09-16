@@ -1,5 +1,3 @@
-import logging
-
 from pydantic import ValidationError, Field
 from pydantic_settings import BaseSettings
 

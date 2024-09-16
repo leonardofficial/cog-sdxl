@@ -9,7 +9,7 @@ from helpers.logger import logger
 
 config = load_config()
 _supabaseClient: SyncClient = None
-_conn = None
+_supabasePostgres = None
 
 def get_supabase():
     global _supabaseClient
@@ -20,10 +20,10 @@ def get_supabase():
 
 # Initialize and return a PostgreSQL connection with autocommit enabled.
 def get_supabase_postgres():
-    global _conn
+    global _supabasePostgres
 
-    if _conn is not None:
-        return _conn
+    if _supabasePostgres is not None:
+        return _supabasePostgres
 
     try:
         logger.info(f"Connecting to PostgreSQL with config: %s", {"host": config.SUPABASE_POSTGRES_HOST, "user": config.SUPABASE_POSTGRES_USER})

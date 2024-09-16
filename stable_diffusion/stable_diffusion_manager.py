@@ -55,7 +55,7 @@ class StableDiffusionManager:
             try:
                 inference_steps = stable_diffusion_inference_steps
                 tqdm_out = TqdmToLogger(logger, level=logging.INFO)
-                with tqdm(total=inference_steps, desc="Image generation", file=tqdm_out) as pbar:
+                with tqdm(total=inference_steps, desc="text-to-image", file=tqdm_out) as pbar:
                     def progress_callback(step, t, latents):
                         pbar.update(1)
 
@@ -80,7 +80,7 @@ class StableDiffusionManager:
             img_io.seek(0)
 
             runtime = int((datetime.now() - start_time).total_seconds() * 1000)
-            logger.info(f"Completed Text-To-Image Request in {runtime} seconds")
+            logger.info(f"Completed Text-To-Image Request in {runtime/1000} seconds")
 
             return StableDiffusionExecutionType(image=img_io.read(), runtime=runtime)
 

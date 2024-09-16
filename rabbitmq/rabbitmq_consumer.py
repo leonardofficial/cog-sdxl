@@ -65,8 +65,6 @@ def subscribe_to_rabbitmq():
 # Callback function to process messages from the queue.
 def consume_queue(ch, method, properties, body):
     try:
-        logger.info(f"Received task from queue: {body}")
-
         # Process the messages
         decoded_body = body.decode('utf-8')
         process_message(decoded_body)
