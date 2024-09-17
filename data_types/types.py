@@ -4,7 +4,6 @@ from datetime import datetime
 from enum import Enum
 from typing import List, Optional, Any
 
-@dataclass
 class JobType(Enum):
     TEXT_TO_IMAGE = "text-to-image"
     TEXT_TO_PORTRAIT = "text-to-portrait"
