@@ -1,7 +1,7 @@
 import json
 from datetime import datetime
 from numpy.f2py.auxfuncs import throw_error
-from data_types.types import SupabaseJobQueueType, JobStatus
+from data_types.types import SupabaseJobQueueType, JobStatus, JobType
 from generate.text_to_image import text_to_image
 from generate.text_to_portrait import text_to_portrait
 from helpers.execution_info import create_execution_info
@@ -49,9 +49,9 @@ def process_message(body):
 
     # [1/3] Generate image
     try:
-        if task_data.request.type == "text-to-image":
+        if task_data.request.type == JobType.TEXT_TO_IMAGE:
             executions = text_to_image(task_data.request)
-        elif task_data.request.type == "text-to-portrait":
+        elif task_data.request.type == JobType.TEXT_TO_PORTRAIT:
             executions = text_to_portrait(task_data.request)
         else:
             logger.error(f"Unsupported task type: {task_data.request.type}")
