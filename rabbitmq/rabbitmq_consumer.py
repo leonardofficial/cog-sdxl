@@ -60,7 +60,8 @@ def process_message(body):
 
     # [2/3] Upload image
     try:
-        filenames = upload_images("images", executions)
+        images_data = list({execution.image for execution in executions})
+        filenames = upload_images("images", images_data)
     except Exception:
         throw_error(f"Image upload failed")
 

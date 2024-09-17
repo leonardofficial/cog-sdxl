@@ -1,7 +1,6 @@
 from numpy.f2py.auxfuncs import throw_error
 from pydantic import ValidationError
 from data_types.types_validation import TextToImageRequestModel
-from helpers.logger import logger
 from helpers.seed import generate_random_seed
 from stable_diffusion.stable_diffusion_manager import get_stable_diffusion
 from data_types.types import TextToImageRequestType, StableDiffusionExecutionType
@@ -25,11 +24,11 @@ def text_to_image(request: TextToImageRequestType) -> list[StableDiffusionExecut
 
                 # Generate image with stable diffusion
                 response = stable_diffusion.text_to_image(request)
+                images.append(response)
 
             except Exception as image_generation_error:
                 throw_error(f"image generation failed: {image_generation_error}")
 
-            images.append(response)
     except Exception as e:
         throw_error(f"unexpected error during image generation: {e}")
 
