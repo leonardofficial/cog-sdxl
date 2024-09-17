@@ -8,10 +8,10 @@ def create_execution_info(runtime: float, data: dict = None):
         "node_id": config.NODE_ID
     }
 
-    if runtime:
-        execution_info.update({"runtime_ms": runtime})
+    if runtime is not None:
+        execution_info["runtime"] = runtime
 
-    if data:
+    if data is not None:
         execution_info.update(data)
 
     return execution_info
