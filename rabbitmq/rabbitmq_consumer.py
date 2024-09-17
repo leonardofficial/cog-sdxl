@@ -39,7 +39,7 @@ def consume_queue(ch, method, properties, body):
         ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
 
         estimated_runtime = int((datetime.now() - start_time).total_seconds() * 1000) # Add rough execution time for debugging (it counts storage upload time as well, hence not accurate)
-        update_job_queue(task_id, JobStatus.FAILED, None, create_execution_info(estimated_runtime, {"error": e}))
+        update_job_queue(task_id, JobStatus.FAILED, None, create_execution_info(estimated_runtime, {"error": str(e)}))
 
 # Process the message body
 def process_message(body):
