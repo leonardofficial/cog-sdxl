@@ -83,6 +83,7 @@ class SupabaseJobQueueType:
 @dataclass
 class StableDiffusionExecutionType:
     image: bytes
+    seed: str
     runtime: int
 
     def json(self):
@@ -93,6 +94,7 @@ class StableDiffusionExecutionType:
     def from_json(cls, data: dict):
         return cls(
             image=data['image'],
+            seed=data['seed'],
             runtime=data['runtime']
         )
 

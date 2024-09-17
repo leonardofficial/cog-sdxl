@@ -1,15 +1,14 @@
 import json
+from datetime import datetime
+from numpy.f2py.auxfuncs import throw_error
 from data_types.types import SupabaseJobQueueType
 from generate.text_to_image import text_to_image
 from generate.text_to_portrait import text_to_portrait
 from helpers.execution_info import create_execution_info
 from helpers.load_config import load_config
-import pika
-import time
-from pika.exceptions import AMQPConnectionError, ChannelClosedByBroker
 from helpers.logger import logger
 from rabbitmq.rabbitmq_connection import get_rabbitmq
-from rabbitmq.rabbitmq_queue import get_queue_length
+from supabase_helpers.storage import upload_images
 from supabase_helpers.update_job_queue import update_job_queue
 
 config = load_config()
@@ -26,6 +25,7 @@ def subscribe_to_rabbitmq():
 
 # Callback function to process messages from the queue.
 def consume_queue(ch, method, properties, body):
+    start_time = datetime.now()
     try:
         # Process the messages
         decoded_body = body.decode('utf-8')
@@ -34,28 +34,52 @@ def consume_queue(ch, method, properties, body):
         # Acknowledge the message only after successful processing
         ch.basic_ack(delivery_tag=method.delivery_tag)
     except Exception as e:
-        logger.exception(f"Failed to process task, error: {e}")
-        update_job_queue(decoded_body.id, 'failed', None, {"error": e})
+        task_id = json.loads(decoded_body).get('id')
+        logger.exception(f"Failed to process task {task_id}, error: {e}")
         ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
+
+        estimated_runtime = int((datetime.now() - start_time).total_seconds() * 1000) # Add rough execution time for debugging (it counts storage upload time as well, hence not accurate)
+        update_job_queue(task_id, 'failed', None, create_execution_info(estimated_runtime, {"error": e}))
 
 # Process the message body
 def process_message(body):
+    global executions
     task_data = SupabaseJobQueueType.from_json(json.loads(body))
     logger.info(f"Processing Job {task_data.id}")
 
-    start_time = time.time()
-
+    # [1/3] Generate image
     try:
         if task_data.request.type == "text-to-image":
-            response = text_to_image(task_data.request)
+            executions = text_to_image(task_data.request)
         elif task_data.request.type == "text-to-portrait":
-            response = text_to_portrait(task_data.request)
+            executions = text_to_portrait(task_data.request)
         else:
             logger.error(f"Unsupported task type: {task_data.request.type}")
             return
-
-        execution_info = create_execution_info(start_time)
-        update_job_queue(task_data.id, 'succeeded', response, execution_info)
     except Exception as e:
-        logger.exception(f"Error processing task ID: {task_data.id}, error: {e}")
-        #supabaseClient.from_('job_queue').update({'status': 'failed', "execution_info": create_execution_info(start_time)}).eq('id', task_id).execute()
+        throw_error(f"Image generation failed")
+
+    # [2/3] Upload image
+    try:
+        filenames = upload_images("images", executions)
+    except Exception:
+        throw_error(f"Image upload failed")
+
+    # [3/3] Update database job_queue
+    try:
+        total_runtime = sum(execution.runtime for execution in executions)
+        execution_info = create_execution_info(total_runtime)
+        response = {
+            "images": [
+                {
+                    "seed": execution.seed,
+                    "bucket": "images",
+                    "filename": filename + ".png",
+                    "runtime": execution.runtime
+                }
+                for filename, execution in zip(filenames, executions)
+            ]
+        }
+        update_job_queue(task_data.id, 'succeeded', response, execution_info)
+    except Exception:
+        throw_error(f"Database update failed")

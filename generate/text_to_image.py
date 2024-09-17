@@ -1,44 +1,36 @@
+from numpy.f2py.auxfuncs import throw_error
 from pydantic import ValidationError
 from data_types.types_validation import TextToImageRequestModel
 from helpers.logger import logger
 from helpers.seed import generate_random_seed
-from data_types.types import TextToImageRequestType
 from stable_diffusion.stable_diffusion_manager import get_stable_diffusion
-from supabase_helpers.storage import upload_image
+from data_types.types import TextToImageRequestType, StableDiffusionExecutionType
 
-def text_to_image(request: TextToImageRequestType):
+def text_to_image(request: TextToImageRequestType) -> list[StableDiffusionExecutionType]:
     if request is None:
-        return {"error": "request data is missing"}
+        throw_error("request data is missing")
 
-    # Validate request data
     try:
         TextToImageRequestModel(**request.__dict__)
     except ValidationError as e:
-        return {"error": f"invalid request data: {e.errors()}"}
+        throw_error(f"invalid request data: {e.errors()}")
 
     images = []
     stable_diffusion = get_stable_diffusion()
     try:
         for i in range(request.num_options if request.seed is None else 1):
-            # [1/2] Generate image
             try:
                 current_seed = request.seed if request.seed is not None else generate_random_seed()
                 request.seed = current_seed
+
+                # Generate image with stable diffusion
                 response = stable_diffusion.text_to_image(request)
+
             except Exception as image_generation_error:
-                logger.error(f"Error generating image: {image_generation_error}")
-                return {"error": "Image generation failed", "details": str(image_generation_error)}
+                throw_error(f"image generation failed: {image_generation_error}")
 
-            # [2/2] Upload image to bucket
-            try:
-                filename = upload_image("images", response.image)
-            except Exception as upload_error:
-                logger.error(f"Error uploading image: {upload_error}")
-                return {"error": "Image upload failed", "details": str(upload_error)}
-
-            images.append({"image": f"{filename}.png", "seed": current_seed})
+            images.append(response)
     except Exception as e:
-        logger.error(f"Unexpected error: {e}")
-        return {"error": "An unexpected error occurred", "details": str(e)}
+        throw_error(f"unexpected error during image generation: {e}")
 
-    return {"assets": images}
+    return images

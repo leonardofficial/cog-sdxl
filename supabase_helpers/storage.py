@@ -5,7 +5,7 @@ from supabase_helpers.supabase_connection import get_supabase
 
 
 # Upload image to Supabase storage
-def upload_image(bucket: str, data: bytes):
+def upload_image(bucket: str, data: bytes) -> str:
     filename = get_filename()
 
     try:
@@ -15,3 +15,10 @@ def upload_image(bucket: str, data: bytes):
     except Exception as e:
         logger.exception("Failed to upload image to supabase: ", e)
         raise e
+
+def upload_images(bucket: str, files: list[bytes]) -> list[str]:
+    filenames = []
+    for file in files:
+        filenames.append(upload_image(bucket, file))
+
+    return filenames

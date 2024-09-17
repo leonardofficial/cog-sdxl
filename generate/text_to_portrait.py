@@ -1,11 +1,11 @@
 from helpers.seed import generate_random_seed
 
-from data_types.types import TextToImageRequestType
+from data_types.types import TextToImageRequestType, StableDiffusionExecutionType
 from stable_diffusion.stable_diffusion_manager import get_stable_diffusion
 from supabase_helpers.storage import upload_image
 
 
-def text_to_portrait(data: TextToImageRequestType):
+def text_to_portrait(data: TextToImageRequestType) -> list[StableDiffusionExecutionType]:
     if not data:
         raise ValueError("Data input for text-to-portrait is required")
 
