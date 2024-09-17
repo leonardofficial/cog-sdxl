@@ -1,6 +1,6 @@
 import time
 from datetime import datetime, timedelta, timezone
-from data_types.types import SupabaseJobQueueType, TextToImageRequestType
+from data_types.types import SupabaseJobQueueType, TextToImageRequestType, JobStatus
 from helpers.load_config import load_config
 from helpers.logger import logger
 from rabbitmq.rabbitmq_connection import get_rabbitmq
@@ -31,7 +31,7 @@ def validate_supabase_job_data(job_data: SupabaseJobQueueType):
     try:
         created_at = job_data.created_at
         if created_at and ((datetime.now(timezone.utc) - created_at) > timedelta(minutes=config.JOB_DISCARD_THRESHOLD)):
-            update_job_queue(job_data.id, 'stopped', None, {"error": "expired (job too long in queue)"})
+            update_job_queue(job_data.id, JobStatus.STOPPED, None, {"error": "expired (job too long in queue)"})
             return False
         return True
     except Exception as e:

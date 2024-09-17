@@ -1,7 +1,7 @@
 import json
 from datetime import datetime
 from numpy.f2py.auxfuncs import throw_error
-from data_types.types import SupabaseJobQueueType
+from data_types.types import SupabaseJobQueueType, JobStatus
 from generate.text_to_image import text_to_image
 from generate.text_to_portrait import text_to_portrait
 from helpers.execution_info import create_execution_info
@@ -39,7 +39,7 @@ def consume_queue(ch, method, properties, body):
         ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
 
         estimated_runtime = int((datetime.now() - start_time).total_seconds() * 1000) # Add rough execution time for debugging (it counts storage upload time as well, hence not accurate)
-        update_job_queue(task_id, 'failed', None, create_execution_info(estimated_runtime, {"error": e}))
+        update_job_queue(task_id, JobStatus.FAILED, None, create_execution_info(estimated_runtime, {"error": e}))
 
 # Process the message body
 def process_message(body):
@@ -80,6 +80,6 @@ def process_message(body):
                 for filename, execution in zip(filenames, executions)
             ]
         }
-        update_job_queue(task_data.id, 'succeeded', response, execution_info)
+        update_job_queue(task_data.id, JobStatus.SUCCEEDED, response, execution_info)
     except Exception:
         throw_error(f"Database update failed")

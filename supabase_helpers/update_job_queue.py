@@ -1,9 +1,11 @@
 import json
+
+from data_types.types import JobStatus
 from helpers.logger import logger
 from supabase_helpers.supabase_connection import get_supabase_postgres
 
 # Update the status of a job in the job_queue table.
-def update_job_queue(job_id, status, response=None, execution_info_update=None):
+def update_job_queue(job_id, status: JobStatus, response=None, execution_info_update=None):
     conn = get_supabase_postgres()
     cursor = conn.cursor()
 
@@ -12,7 +14,7 @@ def update_job_queue(job_id, status, response=None, execution_info_update=None):
             UPDATE job_queue
             SET status = %s
         """
-        params = [status]
+        params = [status.value]
 
         if execution_info_update is not None:
             execution_info_update_json = json.dumps(execution_info_update)
@@ -28,7 +30,7 @@ def update_job_queue(job_id, status, response=None, execution_info_update=None):
         params.append(job_id)
 
         cursor.execute(sql, tuple(params))
-        logger.info(f"Updated job {job_id} status to {status}.")
+        logger.info(f"Updated job {job_id} status to {status.value}.")
     except Exception as e:
         logger.error(f"Failed to update job {job_id} status: {e}")
     finally:

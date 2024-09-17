@@ -1,6 +1,7 @@
 import json
 from dataclasses import dataclass, asdict, field
 from datetime import datetime
+from enum import Enum
 from typing import List, Optional, Any
 
 @dataclass
@@ -98,4 +99,10 @@ class StableDiffusionExecutionType:
             runtime=data['runtime']
         )
 
-# todo: add jobstatus types
+class JobStatus(Enum):
+    QUEUED = "queued"
+    RUNNING = "running"
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
+    STOPPED = "stopped"
+    ASSIGNED = "assigned"
