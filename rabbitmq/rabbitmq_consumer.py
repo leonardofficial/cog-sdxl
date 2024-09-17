@@ -72,8 +72,8 @@ def consume_queue(ch, method, properties, body):
         # Acknowledge the message only after successful processing
         ch.basic_ack(delivery_tag=method.delivery_tag)
     except Exception as e:
-        logger.exception(f"Failed to process task: {e}")
-        # Optional: Implement logic to requeue or discard the message based on the error
+        logger.exception(f"Failed to process task, error: {e}")
+        update_job_queue(decoded_body.id, 'failed', None, {"error": e})
         ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
 
 # Process the message body
@@ -94,10 +94,6 @@ def process_message(body):
 
         execution_info = create_execution_info(start_time)
         update_job_queue(task_data.id, 'succeeded', response, execution_info)
-
-       # supabaseClient.from_('job_queue').update({'status': 'succeeded', "response": generation_response, "execution_info": execution_info}).eq('id', task_id).execute()
-        # logger.info(f"Task {task_id} processed in {execution_info.get('ms') / 1000:.2f} seconds, with response: {generation_response}")
     except Exception as e:
         logger.exception(f"Error processing task ID: {task_data.id}, error: {e}")
-        update_job_queue(task_data.id, 'failed', None, {"error": e})
         #supabaseClient.from_('job_queue').update({'status': 'failed', "execution_info": create_execution_info(start_time)}).eq('id', task_id).execute()

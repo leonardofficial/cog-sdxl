@@ -42,7 +42,7 @@ class TextToImageRequestType:
     def from_json(cls, data: dict):
         plugins = [ImagePluginType.from_json(plugin) for plugin in data.get('plugins', [])]
         return cls(
-            type=data['type'],
+            type=data.get('type'),
             prompt=data['prompt'],
             num_options=data.get('num_options', 1),
             height=data.get('height', 1024),
