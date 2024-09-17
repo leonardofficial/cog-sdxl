@@ -8,59 +8,21 @@ import pika
 import time
 from pika.exceptions import AMQPConnectionError, ChannelClosedByBroker
 from helpers.logger import logger
+from rabbitmq.rabbitmq_connection import get_rabbitmq
 from rabbitmq.rabbitmq_queue import get_queue_length
 from supabase_helpers.update_job_queue import update_job_queue
 
-# Load configuration settings
 config = load_config()
-RECONNECT_DELAY = 5  # seconds
 
 # Subscribe to RabbitMQ and consume messages from the queue
 def subscribe_to_rabbitmq():
-    while True:
-        try:
-            logger.info("Connecting to RabbitMQ...")
-
-            # Set up the RabbitMQ connection with username and password credentials
-            credentials = pika.PlainCredentials(
-                username=config.RABBITMQ_DEFAULT_USER,
-                password=config.RABBITMQ_DEFAULT_PASS
-            )
-            connection = pika.BlockingConnection(
-                pika.ConnectionParameters(
-                    host=config.RABBITMQ_HOST,
-                    credentials=credentials,
-                    heartbeat=60,  # set heartbeat to detect dead connections
-                    blocked_connection_timeout=300  # set a timeout for blocked connections
-                )
-            )
-            channel = connection.channel()
-            channel.queue_declare(queue=config.RABBITMQ_QUEUE, durable=True)
-
-            logger.info(f"Subscribed to queue: {config.RABBITMQ_QUEUE}")
-            logger.info("Current queue length: %d", get_queue_length(channel))
-            channel.basic_consume(
-                queue=config.RABBITMQ_QUEUE,
-                on_message_callback=consume_queue,
-                auto_ack=False  # set to False for manual ack to handle failures properly
-            )
-            channel.start_consuming()
-
-        except (AMQPConnectionError, ChannelClosedByBroker) as e:
-            logger.error(f"Connection error: {e}. Reconnecting in {RECONNECT_DELAY} seconds...")
-            time.sleep(RECONNECT_DELAY)
-        except Exception as e:
-            logger.exception(f"Unexpected error occurred: {e}")
-            break
-        finally:
-            try:
-                if channel.is_open:
-                    channel.close()
-                if connection.is_open:
-                    connection.close()
-                logger.info("Connection to RabbitMQ closed.")
-            except Exception as close_error:
-                logger.error(f"Error closing connection: {close_error}")
+    connection, channel = get_rabbitmq()
+    channel.basic_consume(
+        queue=config.RABBITMQ_QUEUE,
+        on_message_callback=consume_queue,
+        auto_ack=False  # set to False for manual ack to handle failures properly
+    )
+    channel.start_consuming()
 
 # Callback function to process messages from the queue.
 def consume_queue(ch, method, properties, body):
