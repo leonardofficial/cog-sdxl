@@ -41,6 +41,7 @@ class TextToImageRequestType:
         data_dict = asdict(self)
         if self.plugins:
             data_dict['plugins'] = [json.loads(plugin.json()) for plugin in self.plugins]
+        data_dict['type'] = self.type.value
         return json.dumps(data_dict, default=str)
 
     @classmethod
