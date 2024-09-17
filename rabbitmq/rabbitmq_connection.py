@@ -1,16 +1,18 @@
 import sys
 import time
 import pika
+from pika.adapters.blocking_connection import BlockingChannel, BlockingConnection
+
 from helpers.load_config import load_config
 from helpers.logger import logger
 from pika.exceptions import AMQPConnectionError, ChannelClosedByBroker
 
 config = load_config()
-_rabbitmq = None
+_rabbitmq: tuple[BlockingConnection, BlockingChannel]
 RECONNECT_DELAY = 5  # seconds
 
 # Universal function for RabbitMQ setup
-def get_rabbitmq():
+def get_rabbitmq() -> tuple[BlockingConnection, BlockingChannel]:
     global _rabbitmq
     if _rabbitmq is not None:
         return _rabbitmq
@@ -45,9 +47,10 @@ def get_rabbitmq():
         except Exception as e:
             logger.exception(f"Unexpected error occurred: {e}")
             break
-        finally:
-            close_connection(connection, channel)
-            sys.exit(1)
+
+    # Close connection and exit if an error occurs
+    close_connection(connection, channel)
+    sys.exit(1)
 
 # Utility function to close RabbitMQ connection and channel
 def close_connection(connection, channel):
