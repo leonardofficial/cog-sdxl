@@ -38,6 +38,7 @@ def get_supabase_postgres():
         conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
 
         logger.info("PostgreSQL connection successful")
+        _supabasePostgres = conn
         return conn
     except Exception as e:
         logger.error(f"PostgreSQL connection failed: {e}")
