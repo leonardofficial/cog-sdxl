@@ -1,5 +1,7 @@
 import sys
 import time
+from typing import Optional
+
 import pika
 from pika.adapters.blocking_connection import BlockingChannel, BlockingConnection
 
@@ -8,7 +10,7 @@ from helpers.logger import logger
 from pika.exceptions import AMQPConnectionError, ChannelClosedByBroker
 
 config = load_config()
-_rabbitmq: tuple[BlockingConnection, BlockingChannel]
+_rabbitmq: Optional[tuple[BlockingConnection, BlockingChannel]] = None
 RECONNECT_DELAY = 5  # seconds
 
 # Universal function for RabbitMQ setup

@@ -5,6 +5,11 @@ from enum import Enum
 from typing import List, Optional, Any
 
 @dataclass
+class JobType(Enum):
+    TEXT_TO_IMAGE = "text-to-image"
+    TEXT_TO_PORTRAIT = "text-to-portrait"
+
+@dataclass
 class ImagePluginType:
     id: str
     weight: int
@@ -24,7 +29,7 @@ class ImagePluginType:
 
 @dataclass
 class TextToImageRequestType:
-    type: str
+    type: JobType
     prompt: str
     num_options: int = 1
     height: int = 1024
@@ -43,7 +48,7 @@ class TextToImageRequestType:
     def from_json(cls, data: dict):
         plugins = [ImagePluginType.from_json(plugin) for plugin in data.get('plugins', [])]
         return cls(
-            type=data.get('type'),
+            type=JobType(data['type']),
             prompt=data['prompt'],
             num_options=data.get('num_options', 1),
             height=data.get('height', 1024),
@@ -106,3 +111,4 @@ class JobStatus(Enum):
     FAILED = "failed"
     STOPPED = "stopped"
     ASSIGNED = "assigned"
+
