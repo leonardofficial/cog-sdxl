@@ -54,8 +54,7 @@ def process_message(body):
         elif task_data.request.type == JobType.TEXT_TO_PORTRAIT:
             executions = text_to_portrait(task_data.request)
         else:
-            logger.error(f"Unsupported task type: {task_data.request.type}")
-            return
+            throw_error(f"invalid job type: {task_data.request.type}")
     except Exception as e:
         throw_error(f"Image generation failed")
 
