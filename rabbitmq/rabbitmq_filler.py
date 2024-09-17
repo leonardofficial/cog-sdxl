@@ -1,38 +1,30 @@
-import pika
-import sys
 import time
 from datetime import datetime, timedelta, timezone
 from data_types.types import SupabaseJobQueueType, TextToImageRequestType
 from helpers.load_config import load_config
 from helpers.logger import logger
-from rabbitmq.rabbitmq_helpers import get_queue_length
-from supabase_helpers.supabase_manager import get_supabase_postgres
+from rabbitmq.rabbitmq_connection import get_rabbitmq
+from rabbitmq.rabbitmq_queue import get_queue_length, add_job_to_queue
+from supabase_helpers.supabase_connection import get_supabase_postgres
 from supabase_helpers.update_job_queue import update_job_queue
 
 config = load_config()
 
-# Initialize and return a RabbitMQ connection and channel.
-def init_rabbitmq_connection():
+# Main function to subscribe to PostgreSQL notifications and send new rows to RabbitMQ
+def supabase_to_rabbitmq():
+    supabase_postgres = get_supabase_postgres()
+    rabbit_conn, rabbit_channel = get_rabbitmq()
+
+    logger.info("Stopping jobs older than %s minutes", config.JOB_DISCARD_THRESHOLD)
+
     try:
-        logger.info("RabbitMQ config: %s", {
-                    'host': config.RABBITMQ_HOST,
-                    'queue': config.RABBITMQ_QUEUE,
-                    'user': config.RABBITMQ_DEFAULT_USER
-                    })
-
-        credentials = pika.PlainCredentials(config.RABBITMQ_DEFAULT_USER, config.RABBITMQ_DEFAULT_PASS)
-        connection = pika.BlockingConnection(pika.ConnectionParameters(
-            host=config.RABBITMQ_HOST,
-            credentials=credentials
-        ))
-        channel = connection.channel()
-        channel.queue_declare(queue=config.RABBITMQ_QUEUE, durable=True)
-
-        logger.info("RabbitMQ connection successful")
-        return connection, channel
-    except Exception as e:
-        logger.error(f"RabbitMQ connection failed: {e}")
-        sys.exit(1)
+        while True:
+            fetch_jobs_if_needed(supabase_postgres, rabbit_channel)
+            time.sleep(10)
+    finally:
+        supabase_postgres.close()
+        rabbit_conn.close()
+        logger.info("Supabase & RabbitMQ connections terminated.")
 
 # Validate job data before adding it to RabbitMQ
 def validate_supabase_job_data(job_data: SupabaseJobQueueType):
@@ -74,6 +66,7 @@ def fetch_job_from_supabase(conn) -> SupabaseJobQueueType:
         job = cursor.fetchone()
         if job:
             job_id, request, created_at = job
+            print(request)
             job_data = SupabaseJobQueueType(
                 id=job_id,
                 request=TextToImageRequestType.from_json(request),
@@ -102,39 +95,10 @@ def fetch_jobs_if_needed(conn, channel):
                 break
 
             if validate_supabase_job_data(job_data):
-                add_job_to_rabbitmq(channel, job_data)
+                add_job_to_queue(channel, job_data)
 
             queue_length = get_queue_length(channel)
             time.sleep(2)
 
     except Exception as e:
         logger.error(f"Error fetching jobs: {e}")
-
-# Add a job to the RabbitMQ queue.
-def add_job_to_rabbitmq(channel, job_data: SupabaseJobQueueType):
-    try:
-        channel.basic_publish(
-            exchange='',
-            routing_key=config.RABBITMQ_QUEUE,
-            body=job_data.json(),
-            properties=pika.BasicProperties(delivery_mode=2, message_id=job_data.id),
-        )
-        logger.info(f"{job_data.id} - Job added to RabbitMQ Queue")
-    except Exception as e:
-        logger.error(f"{job_data.id} - Failed to add job to RabbitMQ: {e}")
-
-# Main function to subscribe to PostgreSQL notifications and send new rows to RabbitMQ
-def supabase_to_rabbitmq():
-    supabase_postgres = get_supabase_postgres()
-    rabbit_conn, rabbit_channel = init_rabbitmq_connection()
-
-    logger.info("Stopping jobs older than %s minutes", config.JOB_DISCARD_THRESHOLD)
-
-    try:
-        while True:
-            fetch_jobs_if_needed(supabase_postgres, rabbit_channel)
-            time.sleep(10)
-    finally:
-        supabase_postgres.close()
-        rabbit_conn.close()
-        logger.info("Supabase & RabbitMQ connections terminated.")

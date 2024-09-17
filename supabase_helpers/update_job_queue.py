@@ -1,6 +1,6 @@
 import json
 from helpers.logger import logger
-from supabase_helpers.supabase_manager import get_supabase_postgres
+from supabase_helpers.supabase_connection import get_supabase_postgres
 
 # Update the status of a job in the job_queue table.
 def update_job_queue(job_id, status, response=None, execution_info_update=None):

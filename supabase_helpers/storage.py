@@ -1,7 +1,7 @@
 from io import BytesIO
 from helpers.filename import get_filename
 from helpers.logger import logger
-from supabase_helpers.supabase_manager import get_supabase
+from supabase_helpers.supabase_connection import get_supabase
 
 
 # Upload image to Supabase storage

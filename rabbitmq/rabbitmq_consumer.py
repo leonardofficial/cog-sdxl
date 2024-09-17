@@ -8,7 +8,7 @@ import pika
 import time
 from pika.exceptions import AMQPConnectionError, ChannelClosedByBroker
 from helpers.logger import logger
-from rabbitmq.rabbitmq_helpers import get_queue_length
+from rabbitmq.rabbitmq_queue import get_queue_length
 from supabase_helpers.update_job_queue import update_job_queue
 
 # Load configuration settings
