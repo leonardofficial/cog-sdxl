@@ -19,6 +19,7 @@ def upload_image(bucket: str, data: bytes) -> str:
 def upload_images(bucket: str, files: list[bytes]) -> list[str]:
     filenames = []
     for file in files:
-        filenames.append(upload_image(bucket, file))
+        filename = upload_image(bucket, file)
+        filenames.append(filename)
 
     return filenames

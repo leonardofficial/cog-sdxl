@@ -58,6 +58,7 @@ def process_message(body):
     except Exception as e:
         throw_error(f"Image generation failed")
 
+    print(executions)
     # [2/3] Upload image
     try:
         images_data = list({execution.image for execution in executions})
