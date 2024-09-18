@@ -9,7 +9,6 @@ from helpers.load_config import load_config
 from helpers.logger import logger
 from rabbitmq.rabbitmq_connection import get_rabbitmq
 from supabase_helpers.supabase_images import create_supabase_image_entities
-from supabase_helpers.supabase_storage import upload_files_to_supabase_bucket
 from supabase_helpers.supabase_job_queue import update_supabase_job_queue
 
 config = load_config()
@@ -61,7 +60,7 @@ def process_message(body):
 
     # [2/3] Create images in Supabase
     try:
-        create_supabase_image_entities(executions, task_data.id)
+        create_supabase_image_entities(executions, task_data)
     except Exception:
         throw_error(f"Image upload failed")
 

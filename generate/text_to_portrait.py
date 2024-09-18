@@ -2,7 +2,7 @@ from helpers.seed import generate_random_seed
 
 from data_types.types import TextToImageRequestType, StableDiffusionExecutionType
 from stable_diffusion.stable_diffusion_manager import get_stable_diffusion
-from supabase_helpers.supabase_storage import upload_file_to_supabase_bucket
+from supabase_helpers.supabase_storage import upload_image_to_supabase_bucket
 
 
 def text_to_portrait(data: TextToImageRequestType) -> list[StableDiffusionExecutionType]:
@@ -18,7 +18,7 @@ def text_to_portrait(data: TextToImageRequestType) -> list[StableDiffusionExecut
         current_seed = generate_random_seed()
 
         response = stable_diffusion.text_to_image(data, seed=current_seed)
-        filename = upload_file_to_supabase_bucket("personas", response.image)
+        filename = upload_image_to_supabase_bucket("personas", response.image)
         images.append({"image": f"{filename}.png", "seed": current_seed})
 
 
