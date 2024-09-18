@@ -25,7 +25,7 @@ def download_file_from_supabase_bucket(bucket: str, filename: str):
     try:
         supabase = get_supabase()
         response = supabase.storage.from_(bucket).download(path=filename)
-        return response.data
+        return response
     except Exception as e:
         logger.exception("Failed to download image from supabase: ", e)
         raise e
