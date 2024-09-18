@@ -62,7 +62,7 @@ def process_message(body):
 
     # [2/3] Upload image
     try:
-        images_data = list({execution.image for execution in executions})
+        images_data = [execution.image for execution in executions]
         print(f"length of image data {len(images_data)}")
         filenames = upload_images("images", images_data)
         print(f"length of filenames {len(filenames)}")
