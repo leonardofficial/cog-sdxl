@@ -17,9 +17,7 @@ def text_to_image(request: TextToImageRequestType) -> list[StableDiffusionExecut
     images = []
     stable_diffusion = get_stable_diffusion()
 
-    # Only generate one image, if seed is provided
-    num_iterations = request.num_options if request.seed is None else 1
-    for _ in range(num_iterations):
+    for _ in range(request.num_options):
         try:
             current_seed = request.seed if request.seed is not None else generate_random_seed()
             request.seed = current_seed
