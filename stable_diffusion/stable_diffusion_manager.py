@@ -64,8 +64,10 @@ class StableDiffusionManager:
                 logger.info(f"Downloading Plugin (LoRA): {filename}")
                 try:
                     downloaded_file = download_file_from_supabase_bucket("plugin_weights", f"{filename}")
+                    with open(local_lora_path, "wb") as f:
+                        f.write(downloaded_file)
 
-                    self.plugin_cache[plugin_id] = downloaded_file
+                    self.plugin_cache[plugin_id] = local_lora_path
                 except Exception as e:
                     logger.exception(f"Failed to download LoRA: {filename}")
             else:
