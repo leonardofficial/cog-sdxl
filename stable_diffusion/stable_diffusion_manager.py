@@ -26,7 +26,7 @@ class StableDiffusionManager:
         self.plugin_cache: Dict[str, str] = {}  # Maps LoRA identifiers to local file paths
         self.download_weights()
         self.download_plugins()
-        logger.info("Stable Diffusion initialization successful.")
+        logger.info("Stable Diffusion is ready.")
 
     # Download weights for the Stable Diffusion model
     def download_weights(self):
