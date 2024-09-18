@@ -77,9 +77,9 @@ class StableDiffusionManager:
         logger.info("Plugin (LoRA) weights downloaded successfully.")
 
     @lru_cache(maxsize=10)
-    def load_plugins_to_memory(self, plugins: tuple): # type needs to be tuple to allow cache to hash function call
-        for plugin_id in plugins:
-            self.load_plugin_to_memory(plugin_id)
+    def load_plugins_to_memory(self, plugins: tuple[ImagePluginType]): # type needs to be tuple to allow cache to hash function call
+        for plugin in plugins:
+            self.load_plugin_to_memory(plugin)
 
     def load_plugin_to_memory(self, plugin: ImagePluginType):
         logger.debug(f"Loading Plugin (LoRA) weight into memory: {plugin.id}")
@@ -106,7 +106,7 @@ class StableDiffusionManager:
 
                 # load plugins
                 if data.plugins:
-                    self.load_plugins_to_memory(tuple([plugin.id for plugin in data.plugins]))
+                    self.load_plugins_to_memory(tuple(data.plugins))
 
                 with tqdm(total=inference_steps, desc="text-to-image", file=tqdm_out) as pbar:
                     def progress_callback(step, t, latents):
