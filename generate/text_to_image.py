@@ -16,20 +16,19 @@ def text_to_image(request: TextToImageRequestType) -> list[StableDiffusionExecut
 
     images = []
     stable_diffusion = get_stable_diffusion()
-    try:
-        for i in range(request.num_options if request.seed is None else 1):
-            try:
-                current_seed = request.seed if request.seed is not None else generate_random_seed()
-                request.seed = current_seed
 
-                # Generate image with stable diffusion
-                response = stable_diffusion.text_to_image(request)
-                images.append(response)
+    # Only generate one image, if seed is provided
+    num_iterations = request.num_options if request.seed is None else 1
+    for _ in range(num_iterations):
+        try:
+            current_seed = request.seed if request.seed is not None else generate_random_seed()
+            request.seed = current_seed
 
-            except Exception as image_generation_error:
-                throw_error(f"image generation failed: {image_generation_error}")
+            # Generate image with stable diffusion
+            response = stable_diffusion.text_to_image(request)
+            images.append(response)
 
-    except Exception as e:
-        throw_error(f"unexpected error during image generation: {e}")
+        except Exception as e:
+            throw_error(f"image generation failed")
 
     return images

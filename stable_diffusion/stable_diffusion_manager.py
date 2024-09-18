@@ -128,7 +128,7 @@ class StableDiffusionManager:
 
             except Exception as e:
                 logger.error("Error during image generation: %s", e)
-                throw_error("image generation failed")
+                throw_error(e)
 
             img_io = BytesIO()
             image.save(img_io, 'PNG')

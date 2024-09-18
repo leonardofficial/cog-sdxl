@@ -13,6 +13,7 @@ services:
       - ./.env
     volumes:
       - "./model_cache:/app/model_cache"
+      - "./lora_cache:/app/lora_cache"
     deploy:
       resources:
         reservations:
