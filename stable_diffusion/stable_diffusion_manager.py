@@ -75,6 +75,7 @@ class StableDiffusionManager:
 
     @lru_cache(maxsize=10)
     def load_plugins(self, plugins: List[str]):
+        plugins = tuple(plugins)  # Convert the list to a tuple to ensure its hashability
         for plugin_id in plugins:
             self.load_plugin(plugin_id)
 
@@ -99,13 +100,14 @@ class StableDiffusionManager:
             try:
                 inference_steps = stable_diffusion_inference_steps
                 tqdm_out = TqdmToLogger(logger, level=logging.INFO)
+
+                # load plugins
+                if data.plugins:
+                    self.load_plugins([plugin.id for plugin in data.plugins])
+
                 with tqdm(total=inference_steps, desc="text-to-image", file=tqdm_out) as pbar:
                     def progress_callback(step, t, latents):
                         pbar.update(1)
-
-                    # load plugins
-                    if data.plugins:
-                        self.load_plugins([plugin.id for plugin in data.plugins])
 
                     # generate image
                     image = self.pipeline(
@@ -121,15 +123,12 @@ class StableDiffusionManager:
                         loras=data.plugins
                     ).images[0]
 
-                    # unload plugins
-                    if data.plugins:
-                        self.unload_lora_weights()
-
             except Exception as e:
                 logger.error("Error during image generation: %s", e)
                 raise e
-
-            print("after the error statement")
+            finally:
+                if data.plugins:
+                    self.unload_lora_weights()
 
             img_io = BytesIO()
             image.save(img_io, 'PNG')
