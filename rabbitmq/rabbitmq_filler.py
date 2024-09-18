@@ -47,7 +47,7 @@ def fetch_job_from_supabase(conn) -> SupabaseJobQueueType:
             UPDATE job_queue
             SET job_status = 'assigned',
                 execution_metadata = jsonb_set(
-                    COALESCE(execution_info, '{}'),
+                    COALESCE(execution_metadata, '{}'),
                     '{node}',
                     to_jsonb(%s::text),
                     true
