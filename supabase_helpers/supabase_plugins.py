@@ -6,7 +6,10 @@ def get_plugins_from_supabase():
     try:
         logger.info("Fetching an up-to-date list of plugins from Supabase...")
         supabase = get_supabase_postgres()
-        plugins = supabase.from_("plugins").select("id").execute()
+        cursor = supabase.cursor()
+        cursor.execute("SELECT id FROM plugins")
+        plugins = cursor.fetchall()
+        print(plugins)
         plugin_ids = [plugin["id"] for plugin in plugins.get("data", [])]
         return plugin_ids
     except Exception as e:
