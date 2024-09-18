@@ -58,14 +58,14 @@ def process_message(body):
     except Exception as e:
         throw_error(f"Image generation failed")
 
-    print("length of executions" +  len(executions))
+    print(f"length of executions {len(executions)}")
 
     # [2/3] Upload image
     try:
         images_data = list({execution.image for execution in executions})
-        print("length of image data" +  len(images_data))
+        print(f"length of image data {len(images_data)}")
         filenames = upload_images("images", images_data)
-        print("length of filenames" +  len(filenames))
+        print(f"length of filenames {len(filenames)}")
     except Exception:
         throw_error(f"Image upload failed")
 
