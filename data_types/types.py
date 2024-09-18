@@ -11,7 +11,7 @@ class JobType(Enum):
 @dataclass
 class ImagePluginType:
     id: str
-    weight: int
+    weight: float
     data: Optional[Any] = None
 
     def json(self):

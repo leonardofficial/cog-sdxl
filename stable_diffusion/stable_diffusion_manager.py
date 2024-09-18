@@ -4,6 +4,7 @@ from datetime import datetime
 from io import BytesIO
 from typing import List, Dict
 import torch
+from numpy.f2py.auxfuncs import throw_error
 from tqdm import tqdm
 from data_types.types import TextToImageRequestType, StableDiffusionExecutionType
 from helpers.logger import logger, TqdmToLogger
@@ -126,8 +127,8 @@ class StableDiffusionManager:
                         self.unload_lora_weights()
 
             except Exception as e:
-                logger.exception("Error during image generation")
-                raise e
+                logger.error("Error during image generation: %s", e)
+                throw_error("image generation failed")
 
             img_io = BytesIO()
             image.save(img_io, 'PNG')
