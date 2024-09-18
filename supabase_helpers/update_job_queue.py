@@ -12,7 +12,7 @@ def update_job_queue(job_id, job_status: JobStatus, response_data=None, executio
     try:
         sql = """
             UPDATE job_queue
-            SET status = %s
+            SET job_status = %s
         """
         params = [job_status.value]
 
