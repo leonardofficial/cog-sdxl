@@ -412,7 +412,7 @@ class TokenEmbeddingsHandler:
             ] = new_embeddings
 
     def load_embeddings(self, file_path: str):
-        with safe_open(file_path, framework="pt", device=self.device.type) as f:
+        with safe_open(file_path, framework="pt", device=self.device.job_type) as f:
             for idx in range(len(self.text_encoders)):
                 text_encoder = self.text_encoders[idx]
                 tokenizer = self.tokenizers[idx]

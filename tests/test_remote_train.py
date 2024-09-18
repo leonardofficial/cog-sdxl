@@ -46,7 +46,7 @@ def test_training(training):
     while training.completed_at is None:
         time.sleep(60)
         training.reload()
-    assert training.status == "succeeded"
+    assert training.job_status == "succeeded"
 
 
 @pytest.fixture(scope="module")
@@ -66,4 +66,4 @@ def test_post_training_predictions(trained_model_and_version, prediction_tests):
 
     for val in predictions:
         val.wait()
-        assert val.status == "succeeded"
+        assert val.job_status == "succeeded"

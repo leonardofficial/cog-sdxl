@@ -49,23 +49,19 @@ def process_message(body):
 
     # [1/3] Generate image
     try:
-        if task_data.request.type == JobType.TEXT_TO_IMAGE:
-            executions = text_to_image(task_data.request)
-        elif task_data.request.type == JobType.TEXT_TO_PORTRAIT:
-            executions = text_to_portrait(task_data.request)
+        if task_data.job_type == JobType.TEXT_TO_IMAGE:
+            executions = text_to_image(task_data.request_data)
+        elif task_data.job_type == JobType.TEXT_TO_PORTRAIT:
+            executions = text_to_portrait(task_data.request_data)
         else:
-            throw_error(f"invalid job type: {task_data.request.type}")
+            throw_error(f"invalid job type: {task_data.job_type}")
     except Exception as e:
         throw_error(f"Image generation failed")
-
-    print(f"length of executions {len(executions)}")
 
     # [2/3] Upload image
     try:
         images_data = [execution.image for execution in executions]
-        print(f"length of image data {len(images_data)}")
         filenames = upload_images("images", images_data)
-        print(f"length of filenames {len(filenames)}")
     except Exception:
         throw_error(f"Image upload failed")
 

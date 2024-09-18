@@ -1,6 +1,6 @@
 import time
 from datetime import datetime, timedelta, timezone
-from data_types.types import SupabaseJobQueueType, TextToImageRequestType, JobStatus
+from data_types.types import SupabaseJobQueueType, TextToImageRequestType, JobStatus, JobType
 from helpers.load_config import load_config
 from helpers.logger import logger
 from rabbitmq.rabbitmq_connection import get_rabbitmq
@@ -45,8 +45,8 @@ def fetch_job_from_supabase(conn) -> SupabaseJobQueueType:
         cursor.execute(
             """
             UPDATE job_queue
-            SET status = 'assigned',
-                execution_info = jsonb_set(
+            SET job_status = 'assigned',
+                execution_metadata = jsonb_set(
                     COALESCE(execution_info, '{}'),
                     '{node}',
                     to_jsonb(%s::text),
@@ -54,24 +54,24 @@ def fetch_job_from_supabase(conn) -> SupabaseJobQueueType:
                 ) || jsonb_build_object('assigned_at', %s::text)
             WHERE id = (
                 SELECT id FROM job_queue
-                WHERE status = 'queued'
+                WHERE job_status = 'queued'
                 ORDER BY id
                 FOR UPDATE SKIP LOCKED
                 LIMIT 1
             )
-            RETURNING id, request, created_at;
+            RETURNING id, job_type, request_data, created_at;
             """,
             (config.NODE_ID, datetime.now().isoformat())
         )
         job = cursor.fetchone()
         if job:
-            job_id, request, created_at = job
-            print(request)
+            job_id, job_type, request_data, created_at = job
             job_data = SupabaseJobQueueType(
                 id=job_id,
-                request=TextToImageRequestType.from_json(request),
+                request_data=TextToImageRequestType.from_json(request_data),
                 created_at=created_at,
-                status='assigned'
+                job_status='assigned',
+                job_type=JobType(job_type)
             )
             logger.info(f"Assigned job {job_id} to node {config.NODE_ID}")
             return job_data

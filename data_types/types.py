@@ -28,7 +28,6 @@ class ImagePluginType:
 
 @dataclass
 class TextToImageRequestType:
-    type: JobType
     prompt: str
     num_options: int = 1
     height: int = 1024
@@ -41,14 +40,12 @@ class TextToImageRequestType:
         data_dict = asdict(self)
         if self.plugins:
             data_dict['plugins'] = [json.loads(plugin.json()) for plugin in self.plugins]
-        data_dict['type'] = self.type.value
         return json.dumps(data_dict, default=str)
 
     @classmethod
     def from_json(cls, data: dict):
         plugins = [ImagePluginType.from_json(plugin) for plugin in data.get('plugins', [])]
         return cls(
-            type=JobType(data['type']),
             prompt=data['prompt'],
             num_options=data.get('num_options', 1),
             height=data.get('height', 1024),
@@ -61,29 +58,32 @@ class TextToImageRequestType:
 @dataclass
 class SupabaseJobQueueType:
     id: str
-    request: TextToImageRequestType
-    status: str
+    job_type: JobType
+    request_data: TextToImageRequestType
+    job_status: str
     created_at: datetime
-    execution_info: Optional[Any] = None
-    response: Optional[Any] = None
+    execution_metadata: Optional[Any] = None
+    response_data: Optional[Any] = None
 
     def json(self):
         data_dict = asdict(self)
         data_dict['created_at'] = self.created_at.isoformat() if self.created_at else None
-        data_dict['request'] = json.loads(self.request.json())
+        data_dict['request_data'] = json.loads(self.request_data.json())
+        data_dict['job_type'] = self.job_type.value
         return json.dumps(data_dict, default=str)
 
     @classmethod
     def from_json(cls, data: dict):
-        request = TextToImageRequestType.from_json(data['request'])
+        request_data = TextToImageRequestType.from_json(data['request_data'])
         created_at = datetime.fromisoformat(data['created_at']) if data.get('created_at') else None
         return cls(
             id=data['id'],
-            request=request,
-            status=data['status'],
+            job_type=JobType(data['job_type']),
+            request_data=request_data,
+            job_status=data['job_status'],
             created_at=created_at,
-            execution_info=data.get('execution_info'),
-            response=data.get('response')
+            execution_metadata=data.get('execution_metadata'),
+            response_data=data.get('response_data')
         )
 
 @dataclass
