@@ -5,7 +5,7 @@ from io import BytesIO
 from typing import List, Dict
 import torch
 from tqdm import tqdm
-from data_types.types import TextToImageRequestType, StableDiffusionExecutionType
+from data_types.types import TextToImageRequestType, StableDiffusionExecutionType, ImagePluginType
 from helpers.logger import logger, TqdmToLogger
 from config.consts import stable_diffusion_model_id, stable_diffusion_inference_steps, stable_diffusion_cfg
 from diffusers import DiffusionPipeline
@@ -77,19 +77,20 @@ class StableDiffusionManager:
         logger.info("Plugin (LoRA) weights downloaded successfully.")
 
     @lru_cache(maxsize=10)
-    def load_plugins(self, plugins: tuple): # type needs to be tuple to allow cache to hash function call
+    def load_plugins_to_memory(self, plugins: tuple): # type needs to be tuple to allow cache to hash function call
         for plugin_id in plugins:
-            self.load_plugin(plugin_id)
+            self.load_plugin_to_memory(plugin_id)
 
-    def load_plugin(self, plugin_id: str):
-        logger.debug(f"Loading Plugin (LoRA) weight into memory: {plugin_id}")
-        lora_path = self.plugin_cache.get(plugin_id)
+    def load_plugin_to_memory(self, plugin: ImagePluginType):
+        logger.debug(f"Loading Plugin (LoRA) weight into memory: {plugin.id}")
+        lora_path = self.plugin_cache.get(plugin.id)
         if not lora_path:
-            logger.error(f"Plugin (LoRA) not found in cache: {plugin_id}")
-            raise FileNotFoundError(f"Plugin (LoRA) not found: {plugin_id}")
+            logger.error(f"Plugin (LoRA) not found in cache: {plugin.id}")
+            raise FileNotFoundError(f"Plugin (LoRA) not found: {plugin.id}")
         self.pipeline.load_lora_weights(lora_path)
+        self.pipeline.unet.lora_scale = plugin.weight
 
-    def unload_lora_weights(self):
+    def offload_plugins_from_memory(self):
         logger.debug("Unloading Plugin (LoRA) weights")
         self.pipeline.unload_lora_weights()
 
@@ -105,7 +106,7 @@ class StableDiffusionManager:
 
                 # load plugins
                 if data.plugins:
-                    self.load_plugins(tuple([plugin.id for plugin in data.plugins]))
+                    self.load_plugins_to_memory(tuple([plugin.id for plugin in data.plugins]))
 
                 with tqdm(total=inference_steps, desc="text-to-image", file=tqdm_out) as pbar:
                     def progress_callback(step, t, latents):
@@ -130,7 +131,7 @@ class StableDiffusionManager:
                 raise e
             finally:
                 if data.plugins:
-                    self.unload_lora_weights()
+                    self.offload_plugins_from_memory()
 
             img_io = BytesIO()
             image.save(img_io, 'PNG')
@@ -141,15 +142,13 @@ class StableDiffusionManager:
 
             return StableDiffusionExecutionType(image=img_io.read(), runtime=runtime, seed=data.seed)
 
+
+
     # Retrieve the current Stable Diffusion pipeline.
     def get_pipeline(self) -> DiffusionPipeline:
         if self.pipeline is None:
             raise RuntimeError("Stable Diffusion pipeline not initialized.")
         return self.pipeline
-
-    # Reset the pipeline by reinitializing it and applying plugins.
-    def reset_pipeline(self):
-        self.initialize_pipeline()
 
 
 _stableDiffusionManager: StableDiffusionManager = None
