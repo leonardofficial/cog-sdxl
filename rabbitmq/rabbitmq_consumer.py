@@ -1,6 +1,5 @@
 import json
 from datetime import datetime
-from numpy.f2py.auxfuncs import throw_error
 from data_types.types import SupabaseJobQueueType, JobStatus, JobType
 from generate.text_to_image import text_to_image
 from generate.text_to_portrait import text_to_portrait
@@ -55,18 +54,18 @@ def process_message(body):
         elif task_data.job_type == JobType.TEXT_TO_PORTRAIT:
             executions = text_to_portrait(task_data.request_data)
         else:
-            throw_error(f"invalid job type: {task_data.job_type}")
+            raise Exception(f"invalid job type: {task_data.job_type}")
     except Exception:
         raise Exception(f"Image generation failed")
 
     if len(executions) != task_data.request_data.num_options:
-        throw_error(f"Number of generated images ({len(executions)}) did not match the request ({task_data.request_data.num_options})")
+        raise Exception(f"Number of generated images ({len(executions)}) did not match the request ({task_data.request_data.num_options})")
 
     # [2/3] Create images in Supabase
     try:
         create_supabase_image_entities(executions, task_data)
     except Exception:
-        throw_error(f"Image upload failed")
+        raise Exception(f"Image upload failed")
 
     # [3/3] Update database job_queue
     try:
@@ -74,4 +73,4 @@ def process_message(body):
         execution_metadata = create_execution_metadata(total_runtime)
         update_supabase_job_queue(task_data.id, JobStatus.SUCCEEDED, execution_metadata)
     except Exception:
-        throw_error(f"Database update failed")
+        raise Exception(f"Database update failed")

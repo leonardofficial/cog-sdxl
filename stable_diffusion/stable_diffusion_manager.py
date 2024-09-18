@@ -4,7 +4,6 @@ from datetime import datetime
 from io import BytesIO
 from typing import List, Dict
 import torch
-from numpy.f2py.auxfuncs import throw_error
 from tqdm import tqdm
 from data_types.types import TextToImageRequestType, StableDiffusionExecutionType
 from helpers.logger import logger, TqdmToLogger
