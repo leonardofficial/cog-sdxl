@@ -74,8 +74,7 @@ class StableDiffusionManager:
         logger.info("Plugin (LoRA) weights downloaded successfully.")
 
     @lru_cache(maxsize=10)
-    def load_plugins(self, plugins: List[str]):
-        plugins = tuple(plugins)  # Convert the list to a tuple to ensure its hashability
+    def load_plugins(self, plugins: tuple): # type needs to be tuple to allow cache to hash function call
         for plugin_id in plugins:
             self.load_plugin(plugin_id)
 
@@ -103,7 +102,7 @@ class StableDiffusionManager:
 
                 # load plugins
                 if data.plugins:
-                    self.load_plugins([plugin.id for plugin in data.plugins])
+                    self.load_plugins(tuple([plugin.id for plugin in data.plugins]))
 
                 with tqdm(total=inference_steps, desc="text-to-image", file=tqdm_out) as pbar:
                     def progress_callback(step, t, latents):
