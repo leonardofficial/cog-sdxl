@@ -24,7 +24,6 @@ def text_to_image(request: TextToImageRequestType) -> list[StableDiffusionExecut
 
                 # Generate image with stable diffusion
                 response = stable_diffusion.text_to_image(request)
-                print(response)
                 images.append(response)
 
             except Exception as image_generation_error:
