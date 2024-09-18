@@ -89,7 +89,7 @@ class SupabaseJobQueueType:
 @dataclass
 class StableDiffusionExecutionType:
     image: bytes
-    seed: str
+    seed: int
     runtime: int
 
     def json(self):
