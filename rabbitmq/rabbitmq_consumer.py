@@ -60,7 +60,7 @@ def process_message(body):
         throw_error(f"Image generation failed")
 
     if len(executions) != task_data.request_data.num_options:
-        throw_error(f"Number of generated images {len(executions)} did not match the request {task_data.request_data.num_options}")
+        throw_error(f"Number of generated images ({len(executions)}) did not match the request ({task_data.request_data.num_options})")
 
     # [2/3] Create images in Supabase
     try:
