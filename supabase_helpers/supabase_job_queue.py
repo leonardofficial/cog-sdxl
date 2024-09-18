@@ -5,7 +5,7 @@ from helpers.logger import logger
 from supabase_helpers.supabase_connection import get_supabase_postgres
 
 # Update the status of a job in the job_queue table.
-def update_job_queue(job_id, job_status: JobStatus, response_data=None, execution_metadata_update=None):
+def update_supabase_job_queue(job_id, job_status: JobStatus, execution_metadata_update=None):
     conn = get_supabase_postgres()
     cursor = conn.cursor()
 
@@ -20,11 +20,6 @@ def update_job_queue(job_id, job_status: JobStatus, response_data=None, executio
             execution_metadata_update_json = json.dumps(execution_metadata_update)
             sql += ", execution_metadata = %s"
             params.append(execution_metadata_update_json)
-
-        if response_data is not None:
-            response_json = json.dumps(response_data)
-            sql += ", response_data = %s"
-            params.append(response_json)
 
         sql += " WHERE id = %s;"
         params.append(job_id)

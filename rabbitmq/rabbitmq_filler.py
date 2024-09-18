@@ -6,7 +6,7 @@ from helpers.logger import logger
 from rabbitmq.rabbitmq_connection import get_rabbitmq
 from rabbitmq.rabbitmq_queue import get_queue_length, add_job_to_queue
 from supabase_helpers.supabase_connection import get_supabase_postgres
-from supabase_helpers.update_job_queue import update_job_queue
+from supabase_helpers.supabase_job_queue import update_supabase_job_queue
 
 config = load_config()
 
@@ -31,7 +31,7 @@ def validate_supabase_job_data(job_data: SupabaseJobQueueType):
     try:
         created_at = job_data.created_at
         if created_at and ((datetime.now(timezone.utc) - created_at) > timedelta(minutes=config.JOB_DISCARD_THRESHOLD)):
-            update_job_queue(job_data.id, JobStatus.STOPPED, None, {"error": "expired (job too long in queue)"})
+            update_supabase_job_queue(job_data.id, JobStatus.FAILED, {"error": "expired"})
             return False
         return True
     except Exception as e:

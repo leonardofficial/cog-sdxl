@@ -63,7 +63,6 @@ class SupabaseJobQueueType:
     job_status: str
     created_at: datetime
     execution_metadata: Optional[Any] = None
-    response_data: Optional[Any] = None
 
     def json(self):
         data_dict = asdict(self)
@@ -82,8 +81,7 @@ class SupabaseJobQueueType:
             request_data=request_data,
             job_status=data['job_status'],
             created_at=created_at,
-            execution_metadata=data.get('execution_metadata'),
-            response_data=data.get('response_data')
+            execution_metadata=data.get('execution_metadata')
         )
 
 @dataclass

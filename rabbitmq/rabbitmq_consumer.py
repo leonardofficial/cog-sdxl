@@ -8,8 +8,9 @@ from helpers.execution_metadata import create_execution_metadata
 from helpers.load_config import load_config
 from helpers.logger import logger
 from rabbitmq.rabbitmq_connection import get_rabbitmq
-from supabase_helpers.storage import upload_images
-from supabase_helpers.update_job_queue import update_job_queue
+from supabase_helpers.supabase_images import create_supabase_image_entities
+from supabase_helpers.supabase_storage import upload_files_to_supabase_bucket
+from supabase_helpers.supabase_job_queue import update_supabase_job_queue
 
 config = load_config()
 
@@ -39,7 +40,7 @@ def consume_queue(ch, method, properties, body):
         ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
 
         estimated_runtime = int((datetime.now() - start_time).total_seconds() * 1000) # Add rough execution time for debugging (it counts storage upload time as well, hence not accurate)
-        update_job_queue(task_id, JobStatus.FAILED, None, create_execution_metadata(estimated_runtime, {"error": str(e)}))
+        update_supabase_job_queue(task_id, JobStatus.FAILED, create_execution_metadata(estimated_runtime, {"error": str(e)}))
 
 # Process the message body
 def process_message(body):
@@ -58,10 +59,9 @@ def process_message(body):
     except Exception as e:
         throw_error(f"Image generation failed")
 
-    # [2/3] Upload image
+    # [2/3] Create images in Supabase
     try:
-        images_data = [execution.image for execution in executions]
-        filenames = upload_images("images", images_data)
+        create_supabase_image_entities(executions, task_data.id)
     except Exception:
         throw_error(f"Image upload failed")
 
@@ -69,17 +69,6 @@ def process_message(body):
     try:
         total_runtime = sum(execution.runtime for execution in executions)
         execution_metadata = create_execution_metadata(total_runtime)
-        response = {
-            "images": [
-                {
-                    "seed": execution.seed,
-                    "bucket": "images",
-                    "filename": filename + ".png",
-                    "runtime": execution.runtime
-                }
-                for filename, execution in zip(filenames, executions)
-            ]
-        }
-        update_job_queue(task_data.id, JobStatus.SUCCEEDED, response, execution_metadata)
+        update_supabase_job_queue(task_data.id, JobStatus.SUCCEEDED, execution_metadata)
     except Exception:
         throw_error(f"Database update failed")
