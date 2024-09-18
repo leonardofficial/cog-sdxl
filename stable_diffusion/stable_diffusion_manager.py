@@ -56,19 +56,20 @@ class StableDiffusionManager:
         plugin_ids = get_plugins_from_supabase()
 
         for plugin_id in plugin_ids:
+            filename = f"{plugin_id}.safetensors"
             local_lora_path = os.path.join(
-                lora_cache_dir, plugin_id.replace("/", "_")
+                lora_cache_dir, filename.replace("/", "_")
             )
             if not os.path.exists(local_lora_path):
-                logger.info(f"Downloading Plugin (LoRA): {plugin_id}")
+                logger.info(f"Downloading Plugin (LoRA): {filename}")
                 try:
-                    downloaded_file = download_file_from_supabase_bucket("plugin_weights", f"{plugin_id}.safetensors")
+                    downloaded_file = download_file_from_supabase_bucket("plugin_weights", f"{filename}")
 
                     self.plugin_cache[plugin_id] = downloaded_file
                 except Exception as e:
-                    logger.exception(f"Failed to download LoRA: {plugin_id}")
+                    logger.exception(f"Failed to download LoRA: {filename}")
             else:
-                logger.info(f"LoRA already downloaded: {plugin_id}")
+                logger.info(f"LoRA already downloaded: {filename}")
                 self.plugin_cache[plugin_id] = local_lora_path
 
         logger.info("Plugin (LoRA) weights downloaded successfully.")
