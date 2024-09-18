@@ -8,9 +8,8 @@ def get_plugins_from_supabase():
         supabase = get_supabase_postgres()
         cursor = supabase.cursor()
         cursor.execute("SELECT id FROM plugins")
-        plugins = cursor.fetchall()
-        print(plugins)
-        plugin_ids = [plugin["id"] for plugin in plugins.get("data", [])]
+        data = cursor.fetchall()
+        plugin_ids = [t[0] for t in data]
         return plugin_ids
     except Exception as e:
         logger.exception("Failed to fetch plugins from Supabase: ", e)
