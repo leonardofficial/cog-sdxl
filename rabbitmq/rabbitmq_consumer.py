@@ -22,6 +22,7 @@ def subscribe_to_rabbitmq():
         auto_ack=False  # set to False for manual ack to handle failures properly
     )
     channel.start_consuming()
+    logger.info("Started consuming messages from the queue.")
 
 # Callback function to process messages from the queue.
 def consume_queue(ch, method, properties, body):

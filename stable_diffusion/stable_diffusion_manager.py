@@ -19,11 +19,13 @@ model_cache_dir = "./model_cache"
 
 class StableDiffusionManager:
     def __init__(self, model_name: str):
+        logger.info(f"Initializing Stable Diffusion with: {model_name}")
         self.model_name = model_name
         self.pipeline = None
         self.plugin_cache: Dict[str, str] = {}  # Maps LoRA identifiers to local file paths
-        self.download_weights()  # Download weights before anything else
-        self.download_plugins()  # Download plugins before anything else
+        self.download_weights()
+        self.download_plugins()
+        logger.info("Stable Diffusion initialization successful.")
 
     # Download weights for the Stable Diffusion model
     def download_weights(self):
@@ -48,7 +50,7 @@ class StableDiffusionManager:
             raise e
 
     def download_plugins(self):
-        logger.info("Downloading Plugin (LoRA) files...")
+        logger.info("Downloading Plugin (LoRA) weights...")
         os.makedirs(lora_cache_dir, exist_ok=True)
 
         plugin_ids = get_plugins_from_supabase()
@@ -68,6 +70,8 @@ class StableDiffusionManager:
             else:
                 logger.info(f"LoRA already downloaded: {plugin_id}")
                 self.plugin_cache[plugin_id] = local_lora_path
+
+        logger.info("Plugin (LoRA) weights downloaded successfully.")
 
     @lru_cache(maxsize=10)
     def load_plugins(self, plugins: List[str]):
