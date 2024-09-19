@@ -11,7 +11,6 @@ from config.consts import stable_diffusion_model_id, stable_diffusion_inference_
 from diffusers import DiffusionPipeline
 from helpers.cuda import get_device
 from supabase_helpers.supabase_plugins import get_plugins_from_supabase
-from functools import lru_cache
 from supabase_helpers.supabase_storage import download_file_from_supabase_bucket
 
 lora_cache_dir = "./lora_cache"
@@ -76,7 +75,6 @@ class StableDiffusionManager:
 
         logger.info("Plugin (LoRA) weights downloaded successfully.")
 
-    @lru_cache(maxsize=10)
     def load_plugins_to_memory(self, plugins: tuple[ImagePluginType]): # type needs to be tuple to allow cache to hash function call
         for plugin in plugins:
             self.load_plugin_to_memory(plugin)
