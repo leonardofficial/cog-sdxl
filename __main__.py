@@ -1,5 +1,6 @@
 from helpers.load_config import load_config
 from helpers.logger import logger
+from open_ai.openai_wrapper import get_openai
 from rabbitmq.rabbitmq_connection import get_rabbitmq
 from rabbitmq.rabbitmq_consumer import subscribe_to_rabbitmq
 from rabbitmq.rabbitmq_filler import supabase_to_rabbitmq
@@ -17,7 +18,9 @@ if __name__ == "__main__":
 
     if config.MODE == "consumer":
         logger.info("Starting in consumer mode")
-        get_stable_diffusion() # Ensure the Stable Diffusion model is loaded before starting the consumer
+        get_stable_diffusion()
+        get_openai()
+
         subscribe_to_rabbitmq()
     elif config.MODE == "filler":
         logger.info("Starting in filler mode")
