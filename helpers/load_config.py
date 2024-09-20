@@ -23,6 +23,7 @@ class Config(BaseSettings):
 
     JOB_DISCARD_THRESHOLD: int = Field(1440, alias='JOB_DISCARD_THRESHOLD')  # Required
     LOGGING_LEVEL: str = Field("INFO", alias='LOGGING_LEVEL')
+    OPENAI_KEY: str = Field(..., alias='OPENAI_KEY')  # Required
 
     NODE_GPU: str = Field(..., alias='NODE_GPU')  # Required
     NODE_ID: str = Field(..., alias='NODE_ID')  # Required

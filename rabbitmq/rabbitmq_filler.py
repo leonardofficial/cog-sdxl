@@ -59,18 +59,19 @@ def fetch_job_from_supabase(conn) -> SupabaseJobQueueType:
                 FOR UPDATE SKIP LOCKED
                 LIMIT 1
             )
-            RETURNING id, job_type, request_data, created_at;
+            RETURNING id, job_type, request_data, team, created_at;
             """,
             (config.NODE_ID, datetime.now().isoformat())
         )
         job = cursor.fetchone()
         if job:
-            job_id, job_type, request_data, created_at = job
+            job_id, job_type, request_data, team, created_at = job
             job_data = SupabaseJobQueueType(
                 id=job_id,
                 request_data=TextToImageRequestType.from_json(request_data),
                 created_at=created_at,
                 job_status='assigned',
+                team=team,
                 job_type=JobType(job_type)
             )
             logger.info(f"Assigned job {job_id} to node {config.NODE_ID}")

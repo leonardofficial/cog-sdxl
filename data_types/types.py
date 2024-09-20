@@ -2,7 +2,8 @@ import json
 from dataclasses import dataclass, asdict, field
 from datetime import datetime
 from enum import Enum
-from typing import List, Optional, Any
+from typing import List, Optional, Any, TypedDict, Dict
+
 
 class JobType(Enum):
     TEXT_TO_IMAGE = "text-to-image"
@@ -63,6 +64,7 @@ class SupabaseJobQueueType:
     request_data: TextToImageRequestType
     job_status: str
     created_at: datetime
+    team: str
     execution_metadata: Optional[Any] = None
 
     def json(self):
@@ -82,6 +84,7 @@ class SupabaseJobQueueType:
             request_data=request_data,
             job_status=data['job_status'],
             created_at=created_at,
+            team=data['team'],
             execution_metadata=data.get('execution_metadata')
         )
 
@@ -110,4 +113,3 @@ class JobStatus(Enum):
     FAILED = "failed"
     STOPPED = "stopped"
     ASSIGNED = "assigned"
-

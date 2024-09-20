@@ -86,11 +86,18 @@ class StableDiffusionManager:
             logger.error(f"Plugin (LoRA) not found in cache: {plugin.id}")
             raise FileNotFoundError(f"Plugin (LoRA) not found: {plugin.id}")
         self.pipeline.load_lora_weights(lora_path)
-        self.pipeline.unet.lora_scale = plugin.weight
 
     def offload_plugins_from_memory(self):
         logger.debug("Unloading Plugin (LoRA) weights")
         self.pipeline.unload_lora_weights()
+
+    def add_plugins_to_prompt(self, data: TextToImageRequestType):
+        if (data.plugins):
+            for plugin in data.plugins:
+                data.prompt += f", <{plugin.id}:{plugin.weight}>"
+
+        return data
+
 
     def text_to_image(self, data: TextToImageRequestType, **kwargs) -> StableDiffusionExecutionType:
         logger.info("Generating image with data: %s", data)
@@ -105,6 +112,9 @@ class StableDiffusionManager:
                 # load plugins
                 if data.plugins:
                     self.load_plugins_to_memory(tuple(data.plugins))
+
+                data = self.add_plugins_to_prompt(data)
+                print(data.prompt)
 
                 with tqdm(total=inference_steps, desc="text-to-image", file=tqdm_out) as pbar:
                     def progress_callback(step, t, latents):

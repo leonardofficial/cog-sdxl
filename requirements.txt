@@ -13,3 +13,7 @@ psycopg2-binary
 pydantic
 pydantic-settings
 peft
+openai
+sniffio
+httpcore
+anyio
