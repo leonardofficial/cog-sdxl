@@ -1,6 +1,9 @@
 from pydantic import ValidationError, Field
 from pydantic_settings import BaseSettings
 
+from helpers.logger import logger
+
+
 class Config(BaseSettings):
     MODE: str = Field(..., alias='MODE')  # Required
 
@@ -41,6 +44,6 @@ def load_config() -> Config:
         try:
             _config = Config()
         except ValidationError as e:
-            print("Configuration Error:", e.json())
+            logger.error("Configuration Error:", e.json())
             raise SystemExit("Exiting due to invalid configuration.")
     return _config
