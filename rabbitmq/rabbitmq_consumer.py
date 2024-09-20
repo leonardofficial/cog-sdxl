@@ -55,8 +55,8 @@ def process_message(body):
             executions = text_to_portrait(task_data.request_data)
         else:
             raise Exception(f"invalid job type: {task_data.job_type}")
-    except Exception:
-        raise Exception(f"Image generation failed")
+    except Exception as e:
+        raise Exception(f"Image generation failed: {e}")
 
     if len(executions) != task_data.request_data.num_options:
         raise Exception(f"Number of generated images ({len(executions)}) did not match the request ({task_data.request_data.num_options})")

@@ -55,7 +55,7 @@ def fetch_job_from_supabase(conn) -> SupabaseJobQueueType:
             WHERE id = (
                 SELECT id FROM job_queue
                 WHERE job_status = 'queued'
-                ORDER BY id
+                ORDER BY created_at ASC 
                 FOR UPDATE SKIP LOCKED
                 LIMIT 1
             )
