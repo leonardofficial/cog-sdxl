@@ -105,8 +105,8 @@ class StableDiffusionManager:
 
         start_time = datetime.now()
         with torch.no_grad():
-            data.seed = data.seed if data.seed else generate_random_seed()
-            generator = torch.manual_seed(data.seed)
+            seed = data.seed if data.seed else generate_random_seed()
+            generator = torch.manual_seed(seed)
             try:
                 inference_steps = stable_diffusion_inference_steps
                 tqdm_out = TqdmToLogger(logger, level=logging.INFO)
@@ -150,7 +150,7 @@ class StableDiffusionManager:
             runtime = int((datetime.now() - start_time).total_seconds() * 1000)
             logger.info(f"Completed Text-To-Image Request in {runtime/1000} seconds")
 
-            return StableDiffusionExecutionType(image=img_io.read(), runtime=runtime, seed=data.seed)
+            return StableDiffusionExecutionType(image=img_io.read(), runtime=runtime, seed=seed)
 
 
 
