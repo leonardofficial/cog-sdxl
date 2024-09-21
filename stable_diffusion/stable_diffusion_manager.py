@@ -10,6 +10,7 @@ from helpers.logger import logger, TqdmToLogger
 from config.consts import stable_diffusion_model_id, stable_diffusion_inference_steps, stable_diffusion_cfg
 from diffusers import DiffusionPipeline
 from helpers.cuda import get_device
+from helpers.seed import generate_random_seed
 from supabase_helpers.supabase_plugins import get_plugins_from_supabase
 from supabase_helpers.supabase_storage import download_file_from_supabase_bucket
 
@@ -104,6 +105,7 @@ class StableDiffusionManager:
 
         start_time = datetime.now()
         with torch.no_grad():
+            data.seed = data.seed if data.seed else generate_random_seed()
             generator = torch.manual_seed(data.seed)
             try:
                 inference_steps = stable_diffusion_inference_steps

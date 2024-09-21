@@ -25,9 +25,6 @@ def text_to_image(request: SupabaseJobQueueType) -> list[StableDiffusionExecutio
     images = []
     stable_diffusion = get_stable_diffusion()
     for _ in range(request_data.num_options):
-        current_seed = request_data.seed if request_data.seed is not None else generate_random_seed()
-        request_data.seed = current_seed
-
         # Generate image with stable diffusion
         response = stable_diffusion.text_to_image(request_data)
         images.append(response)
