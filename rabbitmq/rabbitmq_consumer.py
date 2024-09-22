@@ -45,7 +45,7 @@ def consume_queue(ch, method, properties, body):
 def process_message(body):
     global executions
     task_data = SupabaseJobQueueType.from_json(json.loads(body))
-    update_supabase_job_queue(task_data.id, JobStatus.RUNNING)
+    update_supabase_job_queue(task_data.id, JobStatus.RUNNING, {"started_at": datetime.now().isoformat()})
     logger.info(f"Processing Job {task_data.id}")
 
     # [1/3] Generate image
