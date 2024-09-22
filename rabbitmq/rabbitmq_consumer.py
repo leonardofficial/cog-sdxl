@@ -62,12 +62,6 @@ def process_message(body):
     if len(executions) != task_data.request_data.num_options:
         raise Exception(f"Number of generated images ({len(executions)}) did not match the request ({task_data.request_data.num_options})")
 
-    # [2/3] Create images in Supabase
-    try:
-        create_supabase_image_entities(executions, task_data)
-    except Exception:
-        raise Exception(f"Image upload failed")
-
     # [3/3] Update database job_queue
     try:
         total_runtime = sum(execution.runtime for execution in executions)

@@ -4,6 +4,7 @@ from helpers.seed import generate_random_seed
 from moderate.sanitize_prompt import sanitize_prompt
 from stable_diffusion.stable_diffusion_manager import get_stable_diffusion
 from data_types.types import TextToImageRequestType, StableDiffusionExecutionType, SupabaseJobQueueType
+from supabase_helpers.supabase_images import create_supabase_image_entities
 from supabase_helpers.supabase_team import team_nsfw_allowed
 
 def text_to_image(request: SupabaseJobQueueType) -> list[StableDiffusionExecutionType]:
@@ -28,5 +29,10 @@ def text_to_image(request: SupabaseJobQueueType) -> list[StableDiffusionExecutio
         # Generate image with stable diffusion
         response = stable_diffusion.text_to_image(request_data)
         images.append(response)
+
+        try:
+            create_supabase_image_entities([response], request)
+        except Exception:
+            raise Exception(f"Image upload failed")
 
     return images
