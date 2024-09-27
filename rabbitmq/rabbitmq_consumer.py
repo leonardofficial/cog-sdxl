@@ -53,7 +53,7 @@ def process_message(body):
         if task_data.job_type == JobType.TEXT_TO_IMAGE:
             executions = text_to_image(task_data)
         elif task_data.job_type == JobType.TEXT_TO_PORTRAIT:
-            executions = text_to_portrait(task_data.request_data)
+            executions = text_to_portrait(task_data)
         else:
             raise Exception(f"invalid job type: {task_data.job_type}")
     except Exception as e:
