@@ -152,8 +152,6 @@ class StableDiffusionManager:
 
             return StableDiffusionExecutionType(image=img_io.read(), runtime=runtime, seed=seed)
 
-
-
     # Retrieve the current Stable Diffusion pipeline.
     def get_pipeline(self) -> DiffusionPipeline:
         if self.pipeline is None:

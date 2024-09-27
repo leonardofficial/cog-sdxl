@@ -1,9 +1,8 @@
 from pydantic import ValidationError
 from data_types.types_validation import TextToImageRequestModel
-from helpers.seed import generate_random_seed
 from moderate.sanitize_prompt import sanitize_prompt
 from stable_diffusion.stable_diffusion_manager import get_stable_diffusion
-from data_types.types import TextToImageRequestType, StableDiffusionExecutionType, SupabaseJobQueueType
+from data_types.types import StableDiffusionExecutionType, SupabaseJobQueueType
 from supabase_helpers.supabase_images import create_supabase_image_entities
 from supabase_helpers.supabase_team import team_nsfw_allowed
 
