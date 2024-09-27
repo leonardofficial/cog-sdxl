@@ -17,7 +17,7 @@ def text_to_portrait(request: SupabaseJobQueueType) -> list[StableDiffusionExecu
         raise Exception(f"invalid request data: {e.errors()}")
 
     # Moderate Input
-    sanitize_prompt(request_data.prompt, nsfw_allowed=false)
+    sanitize_prompt(request_data.prompt, nsfw_allowed=False)
 
     # Generate Image(s)
     images = []
